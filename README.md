@@ -69,9 +69,10 @@ Manages physical execution data structure and placeholder structures for AI syst
 
    ```
 
-4. **Environment Variables: Create a .env file in the root directory and configure your local PostgreSQL credentials:**
-   Code snippet
+4. **Environment Variables:**
+   Create a `.env` file in the root directory and configure your local PostgreSQL credentials:
 
+   ```env
    DB_NAME=vertex_fit_db
    DB_USER=postgres
    DB_PASSWORD=your_master_password
@@ -79,6 +80,7 @@ Manages physical execution data structure and placeholder structures for AI syst
    DB_PORT=5432
    SECRET_KEY=your_django_secret_key
    DEBUG=True
+   ```
 
 5. **Run Migrations:**
    ```bash
