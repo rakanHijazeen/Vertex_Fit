@@ -13,6 +13,9 @@ class Exercise(models.Model):
 
 class WorkoutSession(models.Model):
     """Transactional data capturing live performance execution metrics and AI feedback."""
+    # Add this explicit declaration at the top of the model
+    id = models.BigAutoField(primary_key=True)
+    
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, 
         on_delete=models.CASCADE, 

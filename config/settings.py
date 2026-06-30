@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'authentication',
     'workouts',
+    'background_task',
 ]
 
 MIDDLEWARE = [
@@ -140,8 +141,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5500",
-    "http://127.0.0.1:5500",
+    "http://127.0.0.1:3000",
+    "http://localhost:3000",
 ]
 CORS_ALLOW_CREDENTIALS = True
 
