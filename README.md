@@ -1,45 +1,48 @@
 # Vertex Fit Backend
 
-Vertex Fit is an AI-powered, computer-vision-assisted bodybuilding assistant engineered to bridge the gap between traditional workout logging and automated personal coaching[cite: 2]. The platform targets athletes and lifters looking to optimize execution mechanics by transforming standard mobile video recordings into actionable, millisecond-accurate biomechanical feedback[cite: 2].
+Vertex Fit is an AI-powered, computer-vision-assisted bodybuilding assistant engineered to bridge the gap between traditional workout logging and automated personal coaching. The platform targets athletes and lifters looking to optimize execution mechanics by transforming standard mobile video recordings into actionable, millisecond-accurate biomechanical feedback.
 
-By pairing a robust, relational data layer with state-of-the-art Video Language Models (VLMs), Vertex Fit eliminates the guesswork from compound movements (like Squats) and isolation movements (like Bicep Curls), ensuring users maintain optimal form, track true performance metrics, and reduce injury risks[cite: 2].
+By pairing a robust, relational data layer with state-of-the-art Video Language Models (VLMs), Vertex Fit eliminates the guesswork from compound movements (like Squats) and isolation movements (like Bicep Curls), ensuring users maintain optimal form, track true performance metrics, and reduce injury risks.
 
-## 🚀 Key Core Features & Capabilities
+## 🏋️‍♂️ Key Core Features & Capabilities
 
-- **Automated Form Analysis (VLM Integration):** Users upload video recordings of their sets directly from their mobile devices[cite: 2]. The backend pipelines these assets to a specialized vision intelligence engine to evaluate range of motion, eccentric/concentric speed, and postural breakdowns[cite: 2].
-- **Intelligent Metrics Tracking:** Moving beyond simple numerical tallies, the platform captures contextual session execution data, storing comprehensive feedback blocks alongside validated rep counts[cite: 2].
-- **Granular Physical Profiling:** Tracks dynamic user biological data over time, adapting to changing fitness goals (Bulking, Cutting, Maintenance) while offering a framework for customized progression tracking[cite: 2].
-- **Production-Ready SaaS Foundations:** Built with commercial scalability in mind, incorporating secure premium tiers and subscription state mapping directly via webhook-ready infrastructure (Paddle integration)[cite: 2].
+- **Automated Form Analysis (VLM Integration):** Users upload video recordings of their sets directly from their mobile devices. The backend pipelines these assets to a specialized vision intelligence engine to evaluate range of motion, eccentric/concentric speed, and postural breakdowns.
+- **Intelligent Metrics Tracking:** Moving beyond simple numerical tallies, the platform captures contextual session execution data, storing comprehensive feedback blocks alongside validated rep counts.
+- **Granular Physical Profiling:** Tracks dynamic user biological data over time, adapting to changing fitness goals (Bulking, Cutting, Maintenance) while offering a framework for customized progression tracking.
+- **Production-Ready SaaS Foundations:** Built with commercial scalability in mind, incorporating secure premium tiers and subscription state mapping directly via webhook-ready infrastructure (Paddle integration).
 
-## 📈 Project Status: Phase 3 Complete
+## 📊 Project Status: Phase 4 Complete
 
-The core architectural database layer, secure authentication services, and the cloud-integrated video ingestion pipeline are fully operational.
+The core architectural database layer, secure authentication services, cloud-integrated video ingestion, and asynchronous background VLM pipelines are fully operational.
 
 - **Phase 1: Core Django Setup & Relational Database** `[COMPLETE]`
 - **Phase 2: Stateless Authentication & User Management** `[COMPLETE]`
 - **Phase 3: Multipart Video Handling & AWS S3 Integration** `[COMPLETE]`
-- **Phase 4: Async Vision Model (VLM) Pipeline** `[IN PROGRESS]`
+- **Phase 4: Async Vision Model (VLM) Pipeline** `[COMPLETE]`
+- **Phase 5: Vibe-Coding the Mobile-First PWA Frontend** `[IN PROGRESS]`
 
 ---
 
 ## 🛠️ Tech Stack & Architecture
 
-- **Framework:** Django 5.0 & Django REST Framework (DRF)[cite: 2]
-- **Database:** PostgreSQL 18 (Relational Storage)[cite: 2]
+- **Framework:** Django 5.0 & Django REST Framework (DRF)
+- **Database:** PostgreSQL 18 (Relational Storage)
 - **Cloud Storage & SDKs:** AWS S3, Boto3, Botocore
+- **AI/VLM Integration:** Google GenAI SDK (Gemini VLM Engine)
+- **Task Queues:** Django Background Tasks (`django-background-tasks`)
 - **Authentication:** SimpleJWT (JSON Web Tokens)
-- **Environment:** Python Virtual Environment (`venv`) with decoupled `.env` configurations[cite: 2]
+- **Environment:** Python Virtual Environment (`venv`) with decoupled `.env` configurations
 
 ---
 
-## 📐 System Modules & Architecture
+## 🏗️ System Modules & Architecture
 
 ### 1. Core Database & Schema (Phase 1)
 
-- **`User` Model:** Custom authentication transitions from username-based logins to a modern **Email-as-Username** configuration[cite: 2].
-- **`Profile` Model:** Maps one-to-one with the User table to track localized physical metrics (`height`, `target_weight`), goals, and monetization states (`is_premium`, `paddle_subscription_id`)[cite: 2].
-- **`Exercise` Model:** A static lookup directory for baseline physical movements (e.g., Squat, Bicep Curl)[cite: 2].
-- **`WorkoutSession` Model:** A transactional log recording individual sets, capturing `rep_count`, an S3 cloud destination `video_url`, and a `vlm_feedback` text block[cite: 2].
+- **`User` Model:** Custom authentication transitions from username-based logins to a modern **Email-as-Username** configuration.
+- **`Profile` Model:** Maps one-to-one with the User table to track localized physical metrics (`height`, `target_weight`), goals, and monetization states (`is_premium`, `paddle_subscription_id`).
+- **`Exercise` Model:** A static lookup directory for baseline physical movements (e.g., Squat, Bicep Curl).
+- **`WorkoutSession` Model:** A transactional log recording individual sets, capturing `rep_count`, an S3 cloud destination `video_url`, an enum processing flag (`PENDING`, `PROCESSING`, `COMPLETED`, `FAILED`), and a markdown-rendered `vlm_feedback` text block.
 
 ### 2. Stateless Authentication & User Management (Phase 2)
 
@@ -52,6 +55,12 @@ The core architectural database layer, secure authentication services, and the c
 - **Boto3 & S3 Engine Optimization:** Configured a secure `S3Service` leveraging Signature V4 signing and explicit virtual host addressing styles to force clean regional communication routes.
 - **In-Memory File Processing:** Replaced heavy physical server disk staging by processing incoming multi-megabyte mobile files via DRF's `MultiPartParser`, streaming data directly to AWS S3 buckets to reduce server footprint and eliminate disk I/O operations.
 - **Inline Streaming Delivery:** Forced browser-native inline video rendering by explicitly setting `ContentType` headers to `video/mp4` and applying `inline` content dispositions during bucket transfer. Secured real-time asset playback via region-locked, short-expiry pre-signed URLs.
+
+### 4. Async Vision Model (VLM) Pipeline (Phase 4)
+
+- **Decoupled Background Tasks Engine:** Implemented a lightweight asynchronous queue using `django-background-tasks`. This ensures the upload API instantly responds to incoming mobile uploads with a rapid "Success" handshake while safely offloading heavy video analysis workloads to background worker threads.
+- **Structured Gemini VLM Interface:** Setup a scalable configuration module powered by the `google-genai` SDK. Implemented strict trainer-guided system prompts enforcing deterministic, biomechanical analysis frameworks.
+- **Database State Management:** Programmed background workers to dynamically track execution states, monitor automated VLM response streams, update process logs, flip transaction visibility states, and append structured Markdown coaching metrics back into the target `WorkoutSession` record.
 
 ---
 
@@ -104,12 +113,28 @@ The core architectural database layer, secure authentication services, and the c
    AWS_SECRET_ACCESS_KEY=your_aws_secret_key
    AWS_STORAGE_BUCKET_NAME=your_bucket_name
    AWS_S3_REGION_NAME=your_bucket_region
+
+   # Gemini VLM Config
+   GEMINI_API_KEY=your_google_gemini_api_key
    ```[cite: 2]
 
    ````
 
 5. **Run Migrations:**
+
    ````bash
    python manage.py migrate
+   ```[cite: 2]
+   ````
+
+6. **Start Runtime Services:**
+   To spin up the server along with the asynchronous worker background processing engine, keep two terminal routines active:
+
+   ````bash
+   # Terminal 1: Application Web Server
+   python manage.py runserver
+
+   # Terminal 2: Background Task Engine
+   python manage.py process_tasks
    ```[cite: 2]
    ````
