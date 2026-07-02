@@ -13,7 +13,14 @@ class Exercise(models.Model):
 
 class WorkoutSession(models.Model):
     """Transactional data capturing live performance execution metrics and AI feedback."""
-    # Add this explicit declaration at the top of the model
+    
+    # Explicit status state tracking matrix for background async execution (Phase 4.3)
+    STATUS_CHOICES = [
+        ('pending', 'Pending VLM Processing'),
+        ('completed', 'Analysis Complete'),
+        ('failed', 'Analysis Failed'),
+    ]
+
     id = models.BigAutoField(primary_key=True)
     
     user = models.ForeignKey(
@@ -26,10 +33,20 @@ class WorkoutSession(models.Model):
         on_delete=models.PROTECT, 
         related_name='sessions'
     )
+    
     rep_count = models.PositiveIntegerField(default=0)
     video_url = models.URLField(max_length=500, blank=True, null=True, help_text="S3 source link")
     vlm_feedback = models.TextField(blank=True, null=True, help_text="AI system performance breakdown")
+    
+    # The status tracking flag added to satisfy Phase 4 requirements
+    status = models.CharField(
+        max_length=15,
+        choices=STATUS_CHOICES,
+        default='pending',
+        help_text="Tracks the backend analysis execution state cycle"
+    )
+    
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.email} - {self.exercise.name} ({self.timestamp.strftime('%Y-%m-%d')})"
+        return f"{self.user.email} - {self.exercise.name} ({self.timestamp.strftime('%Y-%m-%d')}) [{self.status}]"

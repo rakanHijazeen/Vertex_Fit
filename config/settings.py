@@ -132,6 +132,15 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+# 2. Absolute filesystem path where Django collects all assets for live production deployments
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+# 3. (Optional but highly recommended) Explicitly specify asset discovery priorities
+STATICFILES_FINDERS = [
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder', # Scans workouts/static/ automatically
+]
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 

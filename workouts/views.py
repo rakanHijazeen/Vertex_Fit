@@ -1,7 +1,11 @@
+from django.shortcuts import render
+from django.contrib.auth.decorators import login_required
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 
 from .utils import S3Service
@@ -10,11 +14,17 @@ from .models import WorkoutSession, Exercise
 # From your upcoming background workers module (Step 4.2):
 from .tasks import process_vlm_coaching_analysis
 
+# 🛡️ Create a quick wrapper that bypasses CSRF checks for local session testing
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    def enforce_csrf(self, request):
+        return  # Skip CSRF validation for development sessions
+    
 class WorkoutVideoUploadView(APIView):
     """
     Handles automated multipart streams recorded directly from the device camera,
     uploads them to S3, and hands off processing to the background worker loop.
     """
+    authentication_classes = [JWTAuthentication, CsrfExemptSessionAuthentication] #
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser] # Needed to receive binary streams from the mobile client
 
@@ -55,22 +65,28 @@ class WorkoutVideoUploadView(APIView):
             user=user,
             exercise=exercise,
             video_url=s3_storage_path, # Saves the stable canonical route structure 
-            rep_count=0,               # Initial placeholder state before VLM analysis runs
-            vlm_feedback="Form analysis is processing in the background..."
+            rep_count=int(request.data.get('rep_count', 0)),
+            status='pending',
+            vlm_feedback="Form analysis is processing..."
         )
 
-        # 4. Safely hand over execution asynchronously to background workers (Step 4.2)
-        process_vlm_coaching_analysis.delay(workout_session_id=workout_session.id)
+        # 3. Process the VLM analysis synchronously for local dev testing
+        try:
+            print("🚀 Executing VLM analysis function synchronously...")
+            
+            # 💡 Remove the ".delay" part and call it like a regular function!
+            process_vlm_coaching_analysis(workout_session_id=workout_session.id)
+            
+        except Exception as e:
+            print(f"⚠️ VLM processing execution failed or skipped: {str(e)}")
+            # We don't want an analysis code crash to break your HTTP 201 response status
+            pass
 
-        # 5. Return success instantly so the phone app can show a loading/success animation
         return Response({
             "status": "success",
-            "message": "Camera recording successfully synchronized. Analysis initiated.",
-            "session_id": workout_session.id,
-            "exercise": exercise.name,
-            "temporary_stream_url": video_url
+            "message": "Camera recording successfully synchronized.",
+            "session_id": workout_session.id
         }, status=status.HTTP_201_CREATED)
-
 
 class WorkoutSessionDetailView(APIView):
     """
@@ -98,3 +114,16 @@ class WorkoutSessionDetailView(APIView):
             "stream_url": fresh_stream_url,  # Secure, expiring access target
             "timestamp": workout_session.timestamp
         }, status=status.HTTP_200_OK)
+
+
+# ==========================================
+# PRODUCTION TEMPLATE VIEW ADDITION
+# ==========================================
+
+@login_required(login_url='/api/auth/login/') # Fallback redirect path if token is empty
+def live_tracker_view(request):
+    """
+    Renders the live frontend tracking template. Passes down context variables 
+    such as the standard CSRF security token automatically.
+    """
+    return render(request, 'workouts/tracker.html')

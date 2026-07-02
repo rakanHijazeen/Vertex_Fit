@@ -1,6 +1,7 @@
 import os
 from django.conf import settings
 from django.apps import apps
+from . import vlm_config
 
 # Correct import path for the modern google-genai SDK
 try:
@@ -18,7 +19,6 @@ class GeminiVLMService:
         if not api_key:
             raise ValueError("GEMINI_API_KEY is missing from environment variables or settings.py configuration.")
             
-        # Initialize the client directly using the clean class import
         self.client = Client(api_key=api_key)
         self.model_name = "gemini-2.5-flash"
 
@@ -27,13 +27,9 @@ class GeminiVLMService:
         Passes a secure S3 storage location path or public stream URL to Gemini Flash for deep
         form, tempo, and range of motion breakdown analysis.
         """
-        # 1. Safely resolve the app module to satisfy Pylance's None-checking
-        app_config = apps.get_app_config('workouts')
-        system_instruction = "Analyze the workout execution form, tracking reps and safety parameters."
+        # 💡 Pull the system instruction directly from our clean import wrapper
+        system_instruction = getattr(vlm_config, "VLM_SYSTEM_INSTRUCTION", "Analyze the workout execution form, tracking reps and safety parameters.")
         
-        if app_config.module is not None:
-            # Use getattr on the module to safely extract the config string dynamically
-            system_instruction = getattr(app_config.module.vlm_config, "VLM_SYSTEM_INSTRUCTION", system_instruction)
         try:
             config = types.GenerateContentConfig(
                 system_instruction=system_instruction,

@@ -1,0 +1,65 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-900 text-white">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Vertex Fit AI - Live Tracking</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+</head>
+
+<body class="flex flex-col h-full overflow-hidden font-sans select-none">
+
+    <div id="django-context" data-csrf="{{ csrf_token }}" class="hidden"></div>
+
+    <header class="p-4 bg-slate-950 border-b border-slate-800 flex justify-between items-center shrink-0">
+        <h1 class="text-xl font-bold tracking-wider text-emerald-400">VERTEX FIT</h1>
+
+        <select id="exerciseSelector"
+            class="bg-slate-800 text-xs text-white border border-slate-700 rounded px-2 py-1 focus:outline-none focus:border-emerald-500">
+            <option value="1">Squat (ID: 1)</option>
+            <option value="2">Bicep Curl (ID: 2)</option>
+        </select>
+    </header>
+
+    <main class="flex-1 relative bg-black flex items-center justify-center overflow-hidden">
+        <video id="webcam" class="hidden" playsinline autoplay muted></video>
+        <canvas id="output_canvas" class="w-full h-full object-cover transform -scale-x-100"></canvas>
+
+        <div class="absolute top-4 left-4 right-4 flex justify-between pointer-events-none">
+            <div class="bg-slate-950/80 backdrop-blur p-3 rounded-xl border border-slate-700/50">
+                <p class="text-xs text-slate-400 uppercase font-semibold tracking-wide">Joint Angle</p>
+                <p id="angleDisplay" class="text-2xl font-black text-emerald-400">0°</p>
+            </div>
+            <div class="bg-slate-950/80 backdrop-blur p-3 rounded-xl border border-slate-700/50 text-right">
+                <p class="text-xs text-slate-400 uppercase font-semibold tracking-wide">Reps</p>
+                <p id="repDisplay" class="text-4xl font-black text-white animate-pulse">0</p>
+            </div>
+        </div>
+
+        <div class="absolute bottom-6 left-0 right-0 flex flex-col items-center gap-3 px-4">
+            <div id="recordingStatus"
+                class="hidden text-xs bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1 rounded-full animate-pulse font-medium">
+                🔴 Live Tracking & Recording Active...
+            </div>
+
+            <div class="flex gap-4">
+                <button id="startCamBtn"
+                    class="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-full shadow-lg transition-all active:scale-95 cursor-pointer">
+                    Start Camera & Cues
+                </button>
+                <button id="stopSendBtn"
+                    class="hidden bg-red-500 hover:bg-red-400 text-white font-bold px-6 py-3 rounded-full shadow-lg transition-all active:scale-95 cursor-pointer">
+                    Finish & Send Set to VLM
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="{% static 'workouts/js/workout_tracker.js' %}"></script>
+</body>
+
+</html>
