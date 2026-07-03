@@ -36,6 +36,7 @@ ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 # Application definition
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -49,6 +50,8 @@ INSTALLED_APPS = [
     'workouts',
     'background_task',
 ]
+
+ASGI_APPLICATION = 'config.asgi.application'
 
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',  # Top item for safe mobile handshakes
@@ -177,3 +180,9 @@ AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = os.environ.get('AWS_STORAGE_BUCKET_NAME')
 AWS_S3_REGION_NAME = os.environ.get('AWS_S3_REGION_NAME', 'eu-north-1')
+
+GEMINI_API_KEY = os.getenv('GEMINI_API_KEY')
+VERTEX_PROJECT_ID = os.getenv("VERTEX_PROJECT_ID")
+VERTEX_LOCATION = os.getenv("VERTEX_LOCATION", "us-central1")
+# Explicitly mapping the programmatic authentication file path in the project root
+VERTEX_CREDENTIALS_PATH = os.path.join(BASE_DIR, "gcp-vertex-sa.json")

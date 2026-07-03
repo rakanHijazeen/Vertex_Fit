@@ -126,4 +126,12 @@ def live_tracker_view(request):
     Renders the live frontend tracking template. Passes down context variables 
     such as the standard CSRF security token automatically.
     """
-    return render(request, 'workouts/tracker.html')
+    # 1. Fetch all seeded exercises from PostgreSQL
+    exercises = Exercise.objects.all()
+    
+    # 2. Add them to the context dictionary
+    context = {
+        'exercises': exercises
+    }
+
+    return render(request, 'workouts/tracker.html', context)

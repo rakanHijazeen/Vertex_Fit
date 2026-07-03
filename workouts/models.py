@@ -6,7 +6,8 @@ class Exercise(models.Model):
     name = models.CharField(max_length=100, unique=True, help_text="e.g., Squat, Bicep Curl")
     description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    # Anchor joint index for MediaPipe keypoint tracking (e.g., 16=Wrist, 24=Hip)
+    anchor_joint = models.IntegerField(default=24, help_text="MediaPipe keypoint node index")
     def __str__(self):
         return self.name
 

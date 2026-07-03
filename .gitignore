@@ -3,4 +3,4 @@ __pycache__/
 *.pyc
 .env
 media/
-test_camera.html
+gcp-vertex-sa.json
