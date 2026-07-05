@@ -10,6 +10,7 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         await self.accept()
         self.google_ws = None
         self.gemini_task = None
+        self.heartbeat_task = None  # Explicitly initialized to prevent AttributeError crashes
         self.phase1_triggered = False
         self.setup_complete_sent = False
         self.api_key = getattr(settings, "GEMINI_API_KEY", None)
@@ -73,9 +74,9 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                                 "parts": [
                                     {
                                         "text": (
-                                            "بلش التمرين. قبل ما تبدأ، أعطني وصف سريع للي شايفه بالكاميرا عشان أتأكد إنك شايفني. "                                            "انتبه لأي تقوس بالظهر أو انحراف بالركب أو بطء بالتنفيذ، نبّهني فوراً بكلمتين، وحفزني بناءً على مستوى التعب "
-                                            "راقب حركتي ونبهني اذا عملت اخطاء وإذا التكنيك سليم، شجعني بكلمة وحدة كل تكرار لضمان الاستمرارية. "
-                                            "لا توقف مراقبة، الجلسة مستمرة."                                        
+                                            "انتهت المرحلة الأولى فوراً. اللاعب بدأ تكرارات التمرين الآن (المرحلة الثانية). "
+                                            "تحول إلى وضع التتبع الحركي اللحظي الصارم وتجاهل أي تعليمات إعداد سابقة. "
+                                            "طبق قوانين الـ VISUAL TRUTH بدقة. قيم الفريمات القادمة بناءً على هذا."
                                         )                                    
                                     }
                                 ],
@@ -87,6 +88,10 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                 try:
                     await self.google_ws.send(json.dumps(ready_prompt))
                     print("◼ Sent Phase 2 transition command to Gemini.")
+                    # Start the heartbeat task if it hasn't been started yet
+                    if self.heartbeat_task is None:
+                        self.heartbeat_task = asyncio.create_task(self.run_evaluation_heartbeat())
+                        print("◼ Visual heartbeat loop started successfully.")
                 except Exception as exc:
                     print(f"❌ Failed to send Phase 2 prompt to Gemini: {exc}")
             return
@@ -116,16 +121,29 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                 await self.google_ws.send(json.dumps(gemini_payload))
             except Exception as exc:
                 print(f"❌ Failed to send frame to Gemini: {exc}")
-                try:
-                    await self.send(json.dumps({"type": "error", "message": "Failed to send frame to Gemini."}))
-                except Exception:
-                    pass
-                try:
-                    await self.google_ws.close()
-                except Exception:
-                    pass
                 self.google_ws = None
             return
+
+    async def run_evaluation_heartbeat(self):
+        """
+        Runs quietly in the background during Phase 2.
+        Acts as the user's silent visual pulse, forcing Gemini to analyze 
+        the streamed video frames without needing any voice input.
+        """
+        try:
+            await asyncio.sleep(3.0)
+            while self.google_ws is not None:
+                pulse_prompt = {
+                    "clientContent": {
+                        "turnComplete": True
+                    }
+                }
+                await self.google_ws.send(json.dumps(pulse_prompt))
+                await asyncio.sleep(3.0)
+        except asyncio.CancelledError:
+            pass
+        except Exception as e:
+            print(f"❌ Visual pulse heartbeat loop error: {e}")        
 
     async def init_gemini_live_session(self, exercise_name):
         # Fallback to "General Workout" if exercise_name is empty or null
@@ -141,22 +159,28 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                         "parts": [
                             {
                                 "text": (
-                                    "You are a 2-Phase Jordanian Bodybuilding Coach. "
-                                    f"The current exercise is: {final_exercise}. "
-                                    "1. When initialized with an exercise (e.g., Squats, Curls), immediately load the specific "
-                                    "biomechanical model for that movement. "
-                                    "2.(Phase 2) VISUAL TRUTH: Only report on physical movement you see in the video frames. "
-                                    "If the user is standing still, say NOTHING. Do not count reps unless you physically "
-                                    "see the movement phases. If you are unsure, stay silent. "
-                                    "3. PRIORITIZE visual analysis of the back (spine neutrality) and knees (alignment/tracking) "
-                                    "as the primary safety focus regardless of the exercise. "
-                                    "4. If an exercise doesn't heavily involve the knees (like Curls), shift the priority "
-                                    "to strict elbow/shoulder stabilization and back posture. "
-                                    "Even if form is perfect, provide brief, high-energy rhythm reinforcement "
-                                    "every 3 seconds to confirm you are actively watching the video feed. "
-                                    "If you see form errors, prioritize that feedback over rhythm."
-                                    "5. Keep all mid-set feedback in conversational Jordanian Arabic, under 5 words, "
-                                    "and trigger it immediately upon detecting form deviation."
+                                    "You are an encouraging but highly observant Jordanian personal trainer analyzing a live video stream. "
+                                    f"The current exercise is: {final_exercise}.\n\n"
+                                    
+                                    "PHASE 1 (Setup):\n"
+                                    "- Guide the user into the correct starting position using natural, friendly Jordanian Arabic.\n\n"
+                                    
+                                    "PHASE 2 (Live Set Coaching - SEPARATED LOGIC):\n"
+                                    "You must independenty evaluate form errors and positive motivation. Do not blend the rules.\n\n"
+                                    
+                                    "1. CRITICAL CORRECTIONS (Absolute Priority Over Hype):\n"
+                                    "   Only speak up if a mistake is blatant and continuous. If you see an error, skip praise completely and issue a brief, natural cue:\n"
+                                    "   - If they rush the descent: Tell them to slow down (e.g., 'نزل براحتك', 'اتحكم بالنزلة').\n"
+                                    "   - If their back is visibly swinging excessively: Tell them to stabilize (e.g., 'ثبت ضهرك', 'بدون مرجحة').\n"
+                                    "   - If their elbows drift completely out of position: Cue them to lock them in (e.g., 'كوعك ثابت', 'خلي كوعك بجنبك').\n\n"
+                                    
+                                    "2. PERIODIC MOTIVATION:\n"
+                                    "   If the form is solid and no error from Rule 1 is occurring, you may occasionally cheer them on. "
+                                    "   Use powerful Jordanian words like 'وحش!', 'كفو!', or 'بطل!'. "
+                                    "   CRITICAL: Only drop a hype word once every 3 or 4 repetitions. Do not shout a motivation word on every single heartbeat pulse.\n\n"
+                                    
+                                    "3. CONSTRAINTS:\n"
+                                    "   Keep all spoken interventions warm, encouraging, and strictly under 4 words. Never combine a praise word and a correction in the same breath."
                                 )
                             }
                         ]
@@ -166,7 +190,7 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                         "speechConfig": {
                             "voiceConfig": {
                                 "prebuiltVoiceConfig": {
-                                    "voiceName": "Aoede"
+                                    "voiceName": "Puck" # Deep male voice with a Jordanian accent, suitable for a personal trainer persona
                                 }
                             }
                         }
@@ -176,7 +200,26 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
 
             await self.google_ws.send(json.dumps(setup_packet))
             self.gemini_task = asyncio.create_task(self.receive_from_gemini())
-            await self.send(json.dumps({"type": "init_status", "msg": "تم تفعيل المدرب المباشر"}))
+
+            # Explicitly fire Phase 1 prompt as soon as the session is established
+            phase1_prompt = {
+                "clientContent": {
+                    "turns": [
+                        {
+                            "role": "user",
+                            "parts": [
+                                {
+                                    "text": "ابدأ المرحلة الأولى: وجّهني لوضعية البداية الصحيحة للتمرين بالتفصيل."
+                                }
+                            ],
+                        }
+                    ],
+                    "turnComplete": True,
+                }
+            }
+            await self.google_ws.send(json.dumps(phase1_prompt))
+            
+            await self.send(json.dumps({"type": "init_status", "msg": "تم تفعيل المدرب المباشر - جاري تهيئة وضعية الإعداد"}))
 
         except Exception as exc:
             print(f"❌ Gemini connection failed: {exc}")
@@ -203,48 +246,7 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                 except json.JSONDecodeError:
                     continue
 
-                # Treat the first valid JSON message from Gemini as the setup handshake.
-                if not self.phase1_triggered:
-                    if not self.setup_complete_sent:
-                        try:
-                            await self.send(json.dumps({"type": "setup_complete", "msg": "تم الإعداد، اضغط بدء التمرين عندما تكون جاهزًا."}))
-                        except Exception:
-                            pass
-                        self.setup_complete_sent = True
-
-                    phase1_prompt = {
-                        "clientContent": {
-                            "turns": [
-                                {
-                                    "role": "user",
-                                    "parts": [
-                                        {
-                                            "text": "ابدأ الجلسة وعلمني وضعية البداية الصحيحة للتمرين بالتفصيل."
-                                        }
-                                    ],
-                                }
-                            ],
-                            "turnComplete": True,
-                        }
-                    }
-
-                    try:
-                        await self.google_ws.send(json.dumps(phase1_prompt))
-                        self.phase1_triggered = True
-                        print("◼ Sent initial Phase 1 trigger to Gemini.")
-                    except Exception as exc:
-                        print(f"❌ Failed to send initial Phase 1 prompt: {exc}")
-                    continue
-
-                try:
-                    received_keys = list(data.keys())
-                    print(f"◼ Gemini response keys: {received_keys}")
-                except Exception:
-                    pass
-
                 server_content = data.get("serverContent") or {}
-                if "groundingMetadata" in data:
-                    print("✅ Gemini is referencing visual grounding metadata!")
                 parts = server_content.get("modelTurn", {}).get("parts", [])
                 for part in parts:
                     text = part.get("text") or part.get("displayText")
@@ -257,7 +259,6 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                     inline_data = part.get("inlineData")
                     if inline_data and inline_data.get("data"):
                         payload = inline_data["data"]
-                        print(f"◼ Forwarding audio chunk, size={len(payload)}")
                         try:
                             await self.send(json.dumps({"type": "audio_chunk", "payload": payload}))
                         except Exception:
@@ -266,4 +267,3 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
             raise
         except Exception as exc:
             print(f"❌ Receive loop error: {exc}")
-            

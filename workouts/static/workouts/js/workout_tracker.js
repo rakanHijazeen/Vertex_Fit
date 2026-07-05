@@ -143,8 +143,9 @@
 
         if (data.type === "init_status") {
           console.log("Live coach ready:", data.msg);
+          readySetBtn.classList.remove("hidden");
           guideText.textContent = data.msg || "Live coach connected.";
-          coachMode.textContent = "Waiting";
+          coachMode.textContent = "Ready";
           return;
         }
 
