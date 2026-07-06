@@ -1,5 +1,10 @@
 from django.urls import path
-from .views import WorkoutVideoUploadView, WorkoutSessionDetailView, live_tracker_view
+from .views import (
+    WorkoutVideoUploadView, 
+    WorkoutSessionDetailView, 
+    live_tracker_view,
+    workout_analysis_page_view
+)
 
 urlpatterns = [
     # 1. Existing REST API endpoints utilized by JavaScript fetch workflows
@@ -8,4 +13,7 @@ urlpatterns = [
     
     # 2. Production View layout targeting the PWA interface template
     path('tracker/', live_tracker_view, name='live_workout_tracker'),
+    
+    # 3. The dedicated HTML page to display the deep post-set analysis
+    path('session/<int:session_id>/analysis/', workout_analysis_page_view, name='workout_analysis_page'),
 ]

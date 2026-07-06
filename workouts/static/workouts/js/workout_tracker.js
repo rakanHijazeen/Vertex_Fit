@@ -13,6 +13,8 @@
 
   let cameraStream = null;
   let websocket = null;
+  let mediaRecorder = null;
+  let recordedChunks = [];
   let frameLoopId = null;
   let audioCtx = null;
   let nextAudioStartTime = 0;
@@ -438,6 +440,28 @@
       videoElement.srcObject = cameraStream;
       videoElement.classList.remove("hidden");
       await videoElement.play();
+      // Initialize MediaRecorder for video capture (optional, for upload)
+      try {
+        mediaRecorder = new MediaRecorder(cameraStream, {
+          mimeType: "video/webm",
+        });
+
+        mediaRecorder.ondataavailable = (event) => {
+          if (event.data.size > 0) {
+            recordedChunks.push(event.data);
+          }
+        };
+
+        mediaRecorder.onstop = async () => {
+          const videoBlob = new Blob(recordedChunks, { type: "video/webm" });
+          recordedChunks = []; // Reset for next time
+
+          // Trigger the upload and analysis flow
+          await uploadVideoForAnalysis(videoBlob);
+        };
+      } catch (err) {
+        console.error("Failed to initialize MediaRecorder:", err);
+      }
 
       // Initialize the dynamic rep counter using dataset attributes on the selected option
       try {
@@ -598,6 +622,11 @@
         repCounter.reset();
       }
       isSetStarted = true;
+      // Start the MediaRecorder only when the user is ready, to avoid recording unnecessary footage
+      if (mediaRecorder && mediaRecorder.state === "inactive") {
+        mediaRecorder.start();
+      }
+
       websocket.send(JSON.stringify({ type: "user_ready", message: "جاهز" }));
       readySetBtn.classList.add("hidden");
       guideText.textContent = "Waiting for coach acknowledgement...";
@@ -606,7 +635,14 @@
   });
 
   stopSendBtn.addEventListener("click", () => {
+    // Stop the recording first before tearing down the media stream
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+      mediaRecorder.stop();
+    }
     teardownMedia();
+    // Update UI to show a loading state while uploading
+    guideText.textContent = "Uploading video for deep AI analysis...";
+    coachMode.textContent = "Analyzing";
   });
   // Expose a helper for MediaPipe or other pose engines to push landmarks into the counter
   // Example usage from your MediaPipe callback: window.processPoseLandmarks(poseLandmarks);
@@ -678,6 +714,54 @@
     const dy = child.y - parent.y;
     const angle = Math.atan2(dy, dx) * (180 / Math.PI);
     return Math.round(Math.abs(angle));
+  }
+
+  async function uploadVideoForAnalysis(videoBlob) {
+    const exerciseId = exerciseSelector.value;
+    const currentReps = repCounter ? repCounter.getRepCount() : 0;
+
+    const formData = new FormData();
+    // 'video' matches request.data.get('video') in your view
+    formData.append("video", videoBlob, "workout_recording.webm");
+    formData.append("exercise_id", exerciseId);
+    formData.append("rep_count", currentReps);
+
+    try {
+      // Adjust this URL to match your actual urls.py route for WorkoutVideoUploadView
+      const response = await fetch("/api/workouts/upload/", {
+        method: "POST",
+        // Fetch automatically sets the correct multipart boundary when passing FormData
+        body: formData,
+        headers: {
+          // If not using your CsrfExempt bypass, add the CSRF token here:
+          // 'X-CSRFToken': getCookie('csrftoken')
+        },
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // 1. Grab the button we added to tracker.html
+        const viewAnalysisBtn = document.getElementById("viewAnalysisBtn");
+
+        // 2. Update the sidebar guide text to reflect status
+        guideText.textContent =
+          "✅ Video uploaded successfully! Deep analysis running.";
+
+        // 3. Assign the dynamic Django URL and unhide the dedicated UI button
+        viewAnalysisBtn.setAttribute(
+          "href",
+          `/api/workouts/session/${data.session_id}/analysis/`,
+        );
+        viewAnalysisBtn.classList.remove("hidden");
+        viewAnalysisBtn.classList.add("inline-flex");
+      } else {
+        guideText.textContent = `❌ Upload failed: ${data.error || "Unknown error"}`;
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      guideText.textContent = "❌ Network error during upload.";
+    }
   }
 })();
 // Clean up on page unload

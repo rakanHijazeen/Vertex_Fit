@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -29,18 +29,18 @@ class WorkoutVideoUploadView(APIView):
     parser_classes = [MultiPartParser, FormParser] # Needed to receive binary streams from the mobile client
 
     def post(self, request, format=None):
-        exercise_id = request.data.get('exercise_id')
+        exercise_param = request.data.get('exercise_id')
         video_file = request.data.get('video') # The phone passes the automated capture payload here
 
         if not video_file:
             return Response({"error": "No recorded video stream received from device camera."}, status=status.HTTP_400_BAD_REQUEST)
             
-        if not exercise_id:
+        if not exercise_param:
             return Response({"error": "Exercise ID parameter is required"}, status=status.HTTP_400_BAD_REQUEST)
 
         # Confirm the intended exercise exists in the system database
         try:
-            exercise = Exercise.objects.get(id=exercise_id)
+            exercise = Exercise.objects.get(name=exercise_param)
         except Exercise.DoesNotExist:
             return Response({"error": "Specified exercise configuration does not exist"}, status=status.HTTP_404_NOT_FOUND)
 
@@ -135,3 +135,20 @@ def live_tracker_view(request):
     }
 
     return render(request, 'workouts/tracker.html', context)
+
+@login_required(login_url='/api/auth/login/')
+def workout_analysis_page_view(request, session_id):
+    """
+    Renders the frontend page displaying the Gemini Markdown analysis.
+    Enforces user ownership so users can only see their own analysis.
+    """
+    session = get_object_or_404(WorkoutSession, id=session_id, user=request.user)
+    # 🎥Generate a secure, short-lived streaming link for the browser video player
+    video_stream_url = S3Service.generate_presigned_url(session.video_url)
+    
+    context = {
+        'session': session,
+        'video_stream_url': video_stream_url # Pass this secure link explicitly
+    }
+    
+    return render(request, 'workouts/analysis_detail.html', context)

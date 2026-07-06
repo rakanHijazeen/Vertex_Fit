@@ -1,60 +1,56 @@
 from background_task import background
 from .models import WorkoutSession
-from .utils import S3Service
 from .vlm_service import GeminiVLMService
+from .utils import S3Service
 
-@background(schedule=0)
-def process_vlm_coaching_analysis(workout_session_id: int):
+@background
+def process_vlm_coaching_analysis(workout_session_id):
     """
-    Step 4.2 & 4.3: Async worker that fetches the video stream from S3,
-    passes it to the Gemini VLM engine, and commits the form analysis to the DB.
+    Background worker task that retrieves the workout session, generates a 
+    temporary secure streaming link for the Gemini API, executes the biomechanical 
+    analysis, and saves the markdown results directly to PostgreSQL.
     """
     try:
-        # 1. Pull the fresh transactional row context from PostgreSQL
+        # 1. Pull the tracking session out of the database
         session = WorkoutSession.objects.get(id=workout_session_id)
-    except WorkoutSession.DoesNotExist:
-        print(f"[Task Error]: WorkoutSession {workout_session_id} not found.")
-        return
-
-    # Update state to indicate processing has moved from view to worker
-    session.vlm_feedback = "AI is currently analyzing your camera stream mechanics..."
-    session.save()
-
-    # 🛡️ DEFENSIVE FIX: Check if the string is empty or None. 
-    # If it is missing, reconstruct it dynamically so boto3 doesn't blow up!
-    s3_key = session.video_url
-    if not s3_key:
-        print("⚠️ Warning: session.video_url was None. Reconstructing key path dynamically...")
-        # Rebuild using your app's standard path structure template
-        s3_key = f"workouts/user_{session.user.id}/workout_video.mp4"
-
-    # 2. Generate a secure, temporary streaming link that Gemini can access
-    video_stream_url = S3Service.generate_presigned_url(s3_key)
-    
-    if not video_stream_url:
-        session.vlm_feedback = "🚨 System Error: Unable to generate secure cloud stream access."
-        session.save()
-        return
-
-    try:
-        # 3. Initialize VLM client and trigger the multi-modal generation pipeline
-        vlm_engine = GeminiVLMService()
-        ai_analysis_response = vlm_engine.analyze_workout_video(video_stream_url)
-
-        # 4. Parse the response and update database state (Step 4.3)
-        session.vlm_feedback = ai_analysis_response
         
-        # Simple predictive fallback parser to update rep count metrics from AI text block
-        if "reps:" in ai_analysis_response.lower():
-            parts = ai_analysis_response.lower().split("reps:")
-            rep_digit = "".join(filter(str.isdigit, parts[1].split()[0]))
-            if rep_digit:
-                session.rep_count = int(rep_digit)
-                
-    except Exception as e:
-        print(f"❌ VLM Processing Failure: {str(e)}")
-        session.vlm_feedback = f"🚨 Form analysis failed during execution: {str(e)}"
+        # 2. Update status to processing so the frontend template shows the loading state
+        session.status = 'processing'
+        session.save()
+        
+        print(f"🔄 [VLM Worker]: Initiating coaching analysis for Session #{session.id} ({session.exercise.name})...")
 
-    # Save final analyzed metrics out safely
-    session.save()
-    print(f"🎉 Session {workout_session_id} successfully synchronized and analyzed!")
+        # 3. IMPORTANT: Generate a temporary pre-signed URL so the Gemini API endpoint 
+        # can actually read/download the video file securely from your private S3 bucket.
+        secure_video_url = S3Service.generate_presigned_url(session.video_url)
+
+        # 4. Initialize your isolated Gemini service abstraction wrapper
+        vlm_service = GeminiVLMService()
+
+        # 5. Hand over processing to Gemini with exact ground-truth values to block hallucinations
+        ai_analysis_markdown = vlm_service.analyze_workout_video(
+            video_url=secure_video_url,
+            exercise_name=session.exercise.name,
+            target_reps=session.rep_count
+        )
+
+        # 6. Save the compiled markdown analysis data and mark the queue record complete
+        session.vlm_feedback = ai_analysis_markdown
+        session.status = 'completed'
+        session.save()
+        
+        print(f"✅ [VLM Worker]: Analysis successfully saved for Session #{session.id}!")
+
+    except WorkoutSession.DoesNotExist:
+        print(f"❌ [VLM Worker Error]: WorkoutSession with ID {workout_session_id} could not be resolved.")
+        
+    except Exception as e:
+        print(f"❌ [VLM Worker Error]: Pipeline breakdown: {str(e)}")
+        # Graceful fallback error status mapping so the UI stops infinite polling if something crashes
+        try:
+            session = WorkoutSession.objects.get(id=workout_session_id)
+            session.vlm_feedback = "### 🚨 Analysis Failure\nAn unexpected server anomaly occurred while trying to process the workout metrics."
+            session.status = 'failed'
+            session.save()
+        except:
+            pass

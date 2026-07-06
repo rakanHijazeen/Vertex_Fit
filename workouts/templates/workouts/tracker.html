@@ -39,33 +39,33 @@
                 <label for="exerciseSelector" class="text-sm text-slate-300 hidden sm:inline">Exercise</label>
                 <select id="exerciseSelector"
                     class="bg-slate-800 text-white rounded-md px-3 py-2 border border-slate-700">
-                    <!-- value: slug, data-anchor-joint: MediaPipe node index, data-track-horizontally: boolean, data-fallback-anchor: optional -->
-                    <option value="squat" data-anchor-joint="24" data-track-horizontally="false">Squat</option>
-                    <option value="deadlift" data-anchor-joint="24" data-track-horizontally="false">Deadlift</option>
-                    <option value="rdl" data-anchor-joint="24" data-track-horizontally="false">Romanian Deadlift (RDL)
+                    <!-- Match value strings exactly to seed data name targets -->
+                    <option value="Squat" data-anchor-joint="24" data-track-horizontally="false">Squat</option>
+                    <option value="Deadlift" data-anchor-joint="24" data-track-horizontally="false">Deadlift</option>
+                    <option value="Romanian Deadlift (RDL)" data-anchor-joint="24" data-track-horizontally="false">
+                        Romanian Deadlift (RDL)</option>
+                    <option value="Leg Press" data-anchor-joint="24" data-track-horizontally="false">Leg Press</option>
+                    <option value="Hip Thrust" data-anchor-joint="24" data-track-horizontally="false">Hip Thrust
                     </option>
-                    <option value="leg_press" data-anchor-joint="24" data-track-horizontally="false">Leg Press</option>
-                    <option value="hip_thrust" data-anchor-joint="24" data-track-horizontally="false">Hip Thrust
-                    </option>
-                    <option value="lunge" data-anchor-joint="24" data-track-horizontally="false">Lunge</option>
+                    <option value="Lunge" data-anchor-joint="24" data-track-horizontally="false">Lunge</option>
 
-                    <option value="bench_press" data-anchor-joint="16" data-track-horizontally="false">Bench Press
+                    <option value="Bench Press" data-anchor-joint="16" data-track-horizontally="false">Bench Press
                     </option>
-                    <option value="bicep_curl" data-anchor-joint="16" data-track-horizontally="false">Bicep Curl
+                    <option value="Bicep Curl" data-anchor-joint="16" data-track-horizontally="false">Bicep Curl
                     </option>
-                    <option value="overhead_press" data-anchor-joint="16" data-track-horizontally="false">Overhead Press
-                    </option>
-                    <option value="lateral_raise" data-anchor-joint="16" data-track-horizontally="false">Lateral Raise
+                    <option value="Overhead Press (OHP)" data-anchor-joint="16" data-track-horizontally="false">Overhead
+                        Press</option>
+                    <option value="Lateral Raise" data-anchor-joint="16" data-track-horizontally="false">Lateral Raise
                     </option>
 
-                    <option value="lat_pulldown" data-anchor-joint="16" data-track-horizontally="false"
+                    <option value="Lat Pulldown" data-anchor-joint="16" data-track-horizontally="false"
                         data-fallback-anchor="12">Lat Pulldown</option>
-                    <option value="cable_row" data-anchor-joint="16" data-track-horizontally="true"
+                    <option value="Cable Row" data-anchor-joint="16" data-track-horizontally="true"
                         data-fallback-anchor="12">Cable Row</option>
 
-                    <option value="pull_up" data-anchor-joint="12" data-track-horizontally="false">Pull-Up</option>
-                    <option value="dip" data-anchor-joint="12" data-track-horizontally="false">Dip</option>
-                    <option value="push_up" data-anchor-joint="16" data-track-horizontally="false">Push-Up</option>
+                    <option value="Pull-Up" data-anchor-joint="12" data-track-horizontally="false">Pull-Up</option>
+                    <option value="Dip" data-anchor-joint="12" data-track-horizontally="false">Dip</option>
+                    <option value="Push-Up" data-anchor-joint="16" data-track-horizontally="false">Push-Up</option>
                 </select>
             </div>
         </header>
@@ -84,15 +84,24 @@
                 </div>
 
                 <div class="w-full mt-3 flex items-center justify-between gap-3">
-                    <div class="flex items-center gap-2">
+                    <div class="flex flex-wrap items-center gap-2">
                         <button id="startCamBtn"
                             class="bg-emerald-500 hover:bg-emerald-400 text-slate-900 font-semibold px-4 py-2 rounded-md shadow">Start
                             Camera & Cues</button>
                         <button id="readySetBtn"
                             class="hidden bg-blue-500 hover:bg-blue-400 text-white font-semibold px-4 py-2 rounded-md shadow">Start
                             Set</button>
+
+                        <!-- Renamed button text to "Stop & Analyze" -->
                         <button id="stopSendBtn"
-                            class="hidden bg-red-500 hover:bg-red-400 text-white font-semibold px-4 py-2 rounded-md shadow">Stop</button>
+                            class="hidden bg-red-500 hover:bg-red-400 text-white font-semibold px-4 py-2 rounded-md shadow">Stop
+                            & Analyze</button>
+
+                        <!-- NEW: Hidden Action Link Container for redirection upon upload success -->
+                        <a id="viewAnalysisBtn" href="#"
+                            class="hidden bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-4 py-2 rounded-md shadow items-center gap-2 transition duration-200">
+                            📊 View Deep Set Analysis
+                        </a>
                     </div>
 
                     <div class="text-right">

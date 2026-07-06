@@ -22,13 +22,13 @@ class GeminiVLMService:
         self.client = Client(api_key=api_key)
         self.model_name = "gemini-2.5-flash"
 
-    def analyze_workout_video(self, video_url: str) -> str:
+    def analyze_workout_video(self, video_url: str, exercise_name: str, target_reps: int) -> str:
         """
         Passes a secure S3 storage location path or public stream URL to Gemini Flash for deep
         form, tempo, and range of motion breakdown analysis.
         """
-        # 💡 Pull the system instruction directly from our clean import wrapper
-        system_instruction = getattr(vlm_config, "VLM_SYSTEM_INSTRUCTION", "Analyze the workout execution form, tracking reps and safety parameters.")
+        # 💡 Call the dynamic function from vlm_config instead of reading a static attribute
+        system_instruction = vlm_config.get_vlm_system_instruction(exercise_name, target_reps)
         
         try:
             config = types.GenerateContentConfig(
