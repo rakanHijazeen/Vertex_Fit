@@ -32,6 +32,8 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Implemented a real-time websocket coaching pipeline using Django Channels and Daphne.
 - Connected the browser webcam to a live Gemini Live session over WebSocket.
 - Added browser-side camera capture, frame streaming, and audio playback for live coaching feedback.
+- Added MediaPipe-based pose estimation so the app can track body landmarks, draw skeletal lines, and display active joint information in real time.
+- Implemented exercise-aware rep counting logic that tracks movement through a dynamic anchor joint and records rep totals during live sessions.
 - Built a two-phase coaching experience:
   - Phase 1: initialization and setup guidance
   - Phase 2: live frame-based coaching after user readiness is confirmed
@@ -39,8 +41,9 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 ### 5. Frontend Coaching UI
 
-- Added a live workout tracker page with camera preview, coaching status, and mode indicators.
+- Added a live workout tracker page with camera preview, coaching status, mode indicators, and rep count display.
 - Implemented buttons for starting the camera, entering the set, and stopping the live session.
+- Overlaid pose landmarks and skeletal connection lines on the video feed to support form tracking and visual feedback.
 - Wired the UI to the websocket-based coaching backend.
 
 ---
@@ -58,6 +61,8 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 ### AI / Vision
 
 - Gemini multimodal models for workout analysis and live coaching
+- MediaPipe-based pose tracking with landmark visualization and skeletal line drawing
+- Exercise-aware dynamic rep counting using anchor joints and movement thresholds
 - Structured prompts for biomechanical coaching and safety-oriented feedback
 - Real-time frame streaming for live visual reasoning
 
@@ -103,12 +108,15 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - S3 media upload pipeline
 - VLM-based workout analysis pipeline
 - Live websocket coach prototype with browser camera integration
+- Real-time pose tracking with skeletal lines and landmark overlays
+- Exercise-specific rep counting for live workout sessions
 
 ### In Progress / Active Focus
 
 - Improving the reliability of Phase 2 coaching under live video input
 - Reducing hallucinated coaching behavior when visual evidence is weak or blocked
 - Strengthening prompt architecture and visual-grounding behavior for the live coach
+- Tuning rep-count sensitivity and motion thresholds across exercises
 
 ---
 
@@ -185,4 +193,4 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 ## 🚀 Current Goal
 
-The next milestone is to make the live coaching experience more dependable by tightening the visual grounding and reducing false-positive coaching during Phase 2. The system is already capable of connecting, streaming frames, and generating live responses, but the coaching logic still needs stronger safeguards to remain silent unless real visual evidence is present.
+The next milestone is to make the live coaching experience more dependable by tightening the visual grounding and reducing false-positive coaching during Phase 2. The system is already capable of connecting, streaming frames, and generating live responses, but the coaching logic still needs stronger safeguards to remain silent unless real visual evidence is present while continuing to improve rep-count accuracy across exercises.
