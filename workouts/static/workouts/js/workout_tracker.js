@@ -719,12 +719,14 @@
   async function uploadVideoForAnalysis(videoBlob) {
     const exerciseId = exerciseSelector.value;
     const currentReps = repCounter ? repCounter.getRepCount() : 0;
+    const preferredLanguage = document.getElementById("languageSelector").value;
 
     const formData = new FormData();
     // 'video' matches request.data.get('video') in your view
     formData.append("video", videoBlob, "workout_recording.webm");
     formData.append("exercise_id", exerciseId);
     formData.append("rep_count", currentReps);
+    formData.append("language", preferredLanguage);
 
     try {
       // Adjust this URL to match your actual urls.py route for WorkoutVideoUploadView

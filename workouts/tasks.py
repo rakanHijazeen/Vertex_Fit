@@ -31,7 +31,8 @@ def process_vlm_coaching_analysis(workout_session_id):
         ai_analysis_markdown = vlm_service.analyze_workout_video(
             video_url=secure_video_url,
             exercise_name=session.exercise.name,
-            target_reps=session.rep_count
+            target_reps=session.rep_count,
+            language=session.report_language
         )
 
         # 6. Save the compiled markdown analysis data and mark the queue record complete

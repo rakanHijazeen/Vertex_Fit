@@ -67,7 +67,8 @@ class WorkoutVideoUploadView(APIView):
             video_url=s3_storage_path, # Saves the stable canonical route structure 
             rep_count=int(request.data.get('rep_count', 0)),
             status='pending',
-            vlm_feedback="Form analysis is processing..."
+            vlm_feedback="Form analysis is processing...",
+            report_language=request.data.get('language', 'English'),
         )
 
         # 3. Process the VLM analysis synchronously for local dev testing

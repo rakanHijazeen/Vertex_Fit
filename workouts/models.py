@@ -42,6 +42,7 @@ class WorkoutSession(models.Model):
     rep_count = models.PositiveIntegerField(default=0)
     video_url = models.URLField(max_length=500, blank=True, null=True, help_text="S3 source link")
     vlm_feedback = models.TextField(blank=True, null=True, help_text="AI system performance breakdown")
+    report_language = models.CharField(max_length=10, default='English')
     
     # The status tracking flag added to satisfy Phase 4 requirements
     status = models.CharField(
