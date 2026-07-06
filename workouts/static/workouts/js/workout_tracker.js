@@ -1,6 +1,7 @@
 (function () {
   const videoElement = document.getElementById("webcam");
-  const canvasElement = document.getElementById("output_canvas");
+  const canvasElement = document.getElementById("output_canvas"); // visible overlay for joints/tracers
+  let encodeCanvas = null; // hidden canvas for clean JPEG frames (created at runtime)
   const startBtn = document.getElementById("startCamBtn");
   const readySetBtn = document.getElementById("readySetBtn");
   const stopSendBtn = document.getElementById("stopSendBtn");
@@ -8,12 +9,191 @@
   const recordingStatus = document.getElementById("recordingStatus");
   const guideText = document.getElementById("guideText");
   const coachMode = document.getElementById("coachMode");
+  const angleDisplay = document.getElementById("angleDisplay");
 
   let cameraStream = null;
   let websocket = null;
   let frameLoopId = null;
   let audioCtx = null;
   let nextAudioStartTime = 0;
+  let mpPose = null;
+  let mpCamera = null;
+  // Dynamic rep counter instance (initialized when starting the session)
+  let repCounter = null;
+  let isSetStarted = false;
+
+  // Common MediaPipe Pose connections (pairs of landmark indices) used to draw skeletal tracer lines
+  const POSE_CONNECTIONS = [
+    [0, 1],
+    [1, 2],
+    [2, 3],
+    [3, 7],
+    [0, 4],
+    [4, 5],
+    [5, 6],
+    [6, 8],
+    [9, 10],
+    [11, 12],
+    [11, 13],
+    [13, 15],
+    [15, 17],
+    [15, 19],
+    [15, 21],
+    [17, 19],
+    [12, 14],
+    [14, 16],
+    [16, 18],
+    [16, 20],
+    [16, 22],
+    [18, 20],
+    [11, 23],
+    [12, 24],
+    [23, 24],
+    [23, 25],
+    [24, 26],
+    [25, 27],
+    [26, 28],
+    [27, 29],
+    [28, 30],
+    [29, 31],
+    [30, 32],
+  ];
+
+  /**
+   * DynamicRepCounter
+   * A zero-math (no hardcoded per-exercise trigonometry) state machine that
+   * derives rep-counts from a single anchor joint (with optional fallback)
+   * using smoothing, visibility checks, and axis-aware direction detection.
+   *
+   * Usage:
+   *   const counter = new DynamicRepCounter({ anchor_joint: 16, track_horizontally: false, fallback_anchor_joint: 12 });
+   *   // call `counter.update(landmarks)` on each MediaPipe frame
+   *   // read `counter.getRepCount()` when sending to the server
+   */
+  class DynamicRepCounter {
+    constructor({
+      anchor_joint = 24,
+      track_horizontally = false,
+      fallback_anchor_joint = null,
+      smoothingWindow = 5,
+      visibilityThreshold = 0.6,
+      minAmplitude = 0.02,
+    }) {
+      this.anchorJoint = anchor_joint;
+      this.fallbackAnchor = fallback_anchor_joint;
+      this.trackHorizontally = Boolean(track_horizontally);
+
+      // smoothing & thresholds
+      this.smoothingWindow = smoothingWindow;
+      this.visibilityThreshold = visibilityThreshold;
+      this.minAmplitude = minAmplitude; // normalized coordinate amplitude required to mark movement
+
+      // runtime buffers/state
+      this.buffer = [];
+      this.rollingWindow = [];
+      this.rollingWindowSize = 150; // ~5 seconds at 30fps
+      this.repCount = 0;
+      this.activeJoint = this.anchorJoint;
+      this.lastTrackedJoint = this.anchorJoint;
+      this.framesSeen = 0;
+
+      // State machine variables
+      this.lastThreshold = "neutral"; // "neutral", "low", "high"
+    }
+
+    // moving average smoothing
+    _smooth(value) {
+      this.buffer.push(value);
+      if (this.buffer.length > this.smoothingWindow) this.buffer.shift();
+      const sum = this.buffer.reduce((s, v) => s + v, 0);
+      return sum / this.buffer.length;
+    }
+
+    // public API: update with MediaPipe `landmarks` array
+    // landmarks are expected in the MediaPipe format: {x, y, visibility}
+    update(landmarks) {
+      if (!isSetStarted) return;
+      this.framesSeen += 1;
+      if (!landmarks || !Array.isArray(landmarks)) return;
+
+      // Determine the active joint based on visibility and fallback
+      let joint = landmarks[this.anchorJoint];
+      let selectedJointIndex = this.anchorJoint;
+
+      if (
+        !joint ||
+        (joint.visibility != null &&
+          joint.visibility < this.visibilityThreshold)
+      ) {
+        if (this.fallbackAnchor != null) {
+          const fallback = landmarks[this.fallbackAnchor];
+          if (
+            fallback &&
+            fallback.visibility != null &&
+            fallback.visibility >= this.visibilityThreshold
+          ) {
+            selectedJointIndex = this.fallbackAnchor;
+            joint = fallback;
+          }
+        }
+      }
+
+      this.activeJoint = selectedJointIndex;
+
+      // Reset state if we switched joints to prevent coordinate jumps
+      if (this.activeJoint !== this.lastTrackedJoint) {
+        this.buffer = [];
+        this.rollingWindow = [];
+        this.lastThreshold = "neutral";
+        this.lastTrackedJoint = this.activeJoint;
+      }
+
+      if (!joint) return; // nothing to track
+
+      const axisValue = this.trackHorizontally ? joint.x : joint.y;
+      const smoothed = this._smooth(axisValue);
+
+      this.rollingWindow.push(smoothed);
+      if (this.rollingWindow.length > this.rollingWindowSize) {
+        this.rollingWindow.shift();
+      }
+
+      // Wait until we have enough history to determine range
+      if (this.rollingWindow.length < 15) {
+        return;
+      }
+
+      const minVal = Math.min(...this.rollingWindow);
+      const maxVal = Math.max(...this.rollingWindow);
+      const range = maxVal - minVal;
+
+      if (range > this.minAmplitude) {
+        const normalized = (smoothed - minVal) / range;
+        if (normalized < 0.2) {
+          if (this.lastThreshold === "high") {
+            this.repCount += 1;
+          }
+          this.lastThreshold = "low";
+        } else if (normalized > 0.8) {
+          this.lastThreshold = "high";
+        }
+      }
+    }
+
+    getRepCount() {
+      return this.repCount;
+    }
+
+    reset() {
+      this.buffer = [];
+      this.rollingWindow = [];
+      this.repCount = 0;
+      this.activeJoint = this.anchorJoint;
+      this.lastTrackedJoint = this.anchorJoint;
+      this.framesSeen = 0;
+      this.lastThreshold = "neutral";
+    }
+  }
 
   function createAudioContext() {
     if (audioCtx && audioCtx.state !== "closed") return;
@@ -84,6 +264,7 @@
   }
 
   function teardownMedia() {
+    isSetStarted = false;
     if (frameLoopId !== null) {
       clearInterval(frameLoopId);
       frameLoopId = null;
@@ -99,6 +280,16 @@
       websocket = null;
     }
 
+    // stop MediaPipe camera loop if running
+    try {
+      if (mpCamera && typeof mpCamera.stop === "function") mpCamera.stop();
+      mpCamera = null;
+      if (mpPose && typeof mpPose.close === "function") mpPose.close();
+      mpPose = null;
+    } catch (e) {
+      console.warn("Error stopping MediaPipe camera/pose", e);
+    }
+
     videoElement.srcObject = null;
     videoElement.classList.add("hidden");
     recordingStatus.classList.add("hidden");
@@ -107,6 +298,13 @@
     startBtn.classList.remove("hidden");
     guideText.textContent = "Press Start to connect to Live Coach.";
     coachMode.textContent = "Idle";
+    // reset UI counters
+    try {
+      document.getElementById("repDisplay").textContent = "0";
+      document.getElementById("activeJointDisplay").textContent = "Joint: -";
+    } catch (e) {
+      // noop
+    }
   }
 
   function buildWebSocket() {
@@ -195,11 +393,16 @@
     frameLoopId = setInterval(() => {
       if (videoElement.readyState < 2) return; // Wait until metadata is loaded
 
-      const ctx = canvasElement.getContext("2d");
-      canvasElement.width = 480;
-      canvasElement.height = 360;
+      // Use a hidden encode canvas for clean JPEG frames (no overlay)
+      if (!encodeCanvas) {
+        encodeCanvas = document.createElement("canvas");
+        encodeCanvas.width = 480;
+        encodeCanvas.height = 360;
+      }
+
+      const ctx = encodeCanvas.getContext("2d");
       ctx.drawImage(videoElement, 0, 0, 480, 360);
-      const dataUrl = canvasElement.toDataURL("image/jpeg", 0.6);
+      const dataUrl = encodeCanvas.toDataURL("image/jpeg", 0.6);
       const rawBase64 = dataUrl.split(",")[1];
 
       if (rawBase64.length < 100) {
@@ -212,6 +415,7 @@
         JSON.stringify({
           type: "realtime_frame",
           frame: rawBase64,
+          rep_count: repCounter ? repCounter.getRepCount() : 0,
         }),
       );
     }, 500); // Send a frame every 500ms (2 FPS) to reduce bandwidth and processing load
@@ -235,6 +439,151 @@
       videoElement.classList.remove("hidden");
       await videoElement.play();
 
+      // Initialize the dynamic rep counter using dataset attributes on the selected option
+      try {
+        const selected =
+          exerciseSelector.options[exerciseSelector.selectedIndex];
+        const cfg = {
+          anchor_joint: selected.dataset.anchorJoint
+            ? parseInt(selected.dataset.anchorJoint, 10)
+            : parseInt(selected.value, 10) || 24,
+          track_horizontally: selected.dataset.trackHorizontally === "true",
+          fallback_anchor_joint: selected.dataset.fallbackAnchor
+            ? parseInt(selected.dataset.fallbackAnchor, 10)
+            : null,
+        };
+        repCounter = new DynamicRepCounter(cfg);
+      } catch (e) {
+        // fallback to defaults if dataset isn't present
+        repCounter = new DynamicRepCounter({
+          anchor_joint: 24,
+          track_horizontally: false,
+          fallback_anchor_joint: null,
+        });
+      }
+
+      // Initialize MediaPipe Pose and Camera wrapper to feed landmarks into the rep counter
+      try {
+        // Use global Pose and Camera from the included scripts
+        mpPose = new Pose({
+          locateFile: (file) =>
+            `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+        });
+
+        mpPose.setOptions({
+          modelComplexity: 1,
+          smoothLandmarks: true,
+          enableSegmentation: false,
+          minDetectionConfidence: 0.5,
+          minTrackingConfidence: 0.5,
+        });
+
+        mpPose.onResults((results) => {
+          try {
+            if (results && results.poseLandmarks) {
+              window.processPoseLandmarks(results.poseLandmarks);
+
+              // Update UI counters and angle in real-time
+              const rc = repCounter ? repCounter.getRepCount() : 0;
+              const active =
+                repCounter && repCounter.activeJoint
+                  ? repCounter.activeJoint
+                  : "-";
+              const repEl = document.getElementById("repDisplay");
+              const jointEl = document.getElementById("activeJointDisplay");
+              if (repEl) repEl.textContent = rc;
+              if (jointEl) jointEl.textContent = `Joint: ${active}`;
+
+              // Calculate and display joint angle (e.g., angle at active joint using neighbors)
+              try {
+                const angle = computeJointAngle(results.poseLandmarks, active);
+                if (angleDisplay) angleDisplay.textContent = angle + "°";
+              } catch (e) {
+                // noop
+              }
+
+              // Draw skeleton overlay on the visible canvas (not affecting frame encoding)
+              try {
+                const ctx = canvasElement.getContext("2d");
+                const cw = (canvasElement.width =
+                  videoElement.videoWidth || 480);
+                const ch = (canvasElement.height =
+                  videoElement.videoHeight || 360);
+
+                // clear overlay canvas (video background is handled by CSS)
+                ctx.clearRect(0, 0, cw, ch);
+
+                // Draw skeletal tracer lines between connected landmarks
+                try {
+                  ctx.lineWidth = 2;
+                  ctx.strokeStyle = "rgba(0,200,0,0.7)";
+                  for (let i = 0; i < POSE_CONNECTIONS.length; i++) {
+                    const [a, b] = POSE_CONNECTIONS[i];
+                    const lmA = results.poseLandmarks[a];
+                    const lmB = results.poseLandmarks[b];
+                    if (
+                      lmA &&
+                      lmB &&
+                      lmA.x != null &&
+                      lmA.y != null &&
+                      lmB.x != null &&
+                      lmB.y != null
+                    ) {
+                      const ax = lmA.x * cw;
+                      const ay = lmA.y * ch;
+                      const bx = lmB.x * cw;
+                      const by = lmB.y * ch;
+                      ctx.beginPath();
+                      ctx.moveTo(ax, ay);
+                      ctx.lineTo(bx, by);
+                      ctx.stroke();
+                    }
+                  }
+
+                  // Highlight the active joint with a circle and label
+                  const idx = repCounter ? repCounter.activeJoint : null;
+                  if (idx != null) {
+                    const lm = results.poseLandmarks[idx];
+                    if (lm && lm.x != null && lm.y != null) {
+                      const x = lm.x * cw;
+                      const y = lm.y * ch;
+                      ctx.beginPath();
+                      ctx.arc(x, y, Math.max(6, cw * 0.015), 0, 2 * Math.PI);
+                      ctx.fillStyle = "rgba(255,0,0,0.85)";
+                      ctx.fill();
+                      ctx.lineWidth = 2;
+                      ctx.strokeStyle = "rgba(255,255,255,0.95)";
+                      ctx.stroke();
+                      ctx.font = "14px sans-serif";
+                      ctx.fillStyle = "white";
+                      ctx.fillText(`J${idx}`, x + 8, y - 8);
+                    }
+                  }
+                } catch (sErr) {
+                  console.warn("Tracer draw error", sErr);
+                }
+              } catch (drawErr) {
+                console.warn("Overlay draw failed", drawErr);
+              }
+            }
+          } catch (e) {
+            console.error("MediaPipe onResults error", e);
+          }
+        });
+
+        mpCamera = new Camera(videoElement, {
+          onFrame: async () => {
+            await mpPose.send({ image: videoElement });
+          },
+          width: 480,
+          height: 360,
+        });
+
+        mpCamera.start();
+      } catch (e) {
+        console.warn("MediaPipe initialization failed", e);
+      }
+
       buildWebSocket();
     } catch (error) {
       console.error("Camera startup failed", error);
@@ -244,6 +593,11 @@
 
   readySetBtn.addEventListener("click", () => {
     if (websocket && websocket.readyState === WebSocket.OPEN) {
+      // and recalibrate its baseline when you are actually standing in position!
+      if (repCounter) {
+        repCounter.reset();
+      }
+      isSetStarted = true;
       websocket.send(JSON.stringify({ type: "user_ready", message: "جاهز" }));
       readySetBtn.classList.add("hidden");
       guideText.textContent = "Waiting for coach acknowledgement...";
@@ -254,6 +608,77 @@
   stopSendBtn.addEventListener("click", () => {
     teardownMedia();
   });
+  // Expose a helper for MediaPipe or other pose engines to push landmarks into the counter
+  // Example usage from your MediaPipe callback: window.processPoseLandmarks(poseLandmarks);
+  window.processPoseLandmarks = function (landmarks) {
+    try {
+      if (repCounter && landmarks) repCounter.update(landmarks);
+    } catch (err) {
+      console.error("Rep counter update error", err);
+    }
+  };
+
+  // Expose lightweight getters for UI or external polling
+  window.getRepCount = function () {
+    return repCounter ? repCounter.getRepCount() : 0;
+  };
+
+  window.getActiveJoint = function () {
+    return repCounter ? repCounter.activeJoint : null;
+  };
+
+  // Helper to compute the angle at a joint given two neighboring landmarks
+  // For simplicity, we estimate angle as the angle of the vector from parent to child
+  function computeJointAngle(landmarks, jointIdx) {
+    if (
+      jointIdx == null ||
+      typeof jointIdx === "string" ||
+      !landmarks ||
+      landmarks.length === 0
+    ) {
+      return 0;
+    }
+
+    const idx = parseInt(jointIdx, 10);
+
+    // Common parent-child relationships in MediaPipe Pose
+    // For ankle (index 16), parent is knee (14); for knee (14), parent is hip (12)
+    const parentMap = {
+      16: 14,
+      14: 12,
+      15: 13,
+      13: 11,
+      12: 11,
+      11: 23,
+      24: 23,
+      23: 26,
+      26: 28,
+      28: 32,
+    };
+
+    const parentIdx = parentMap[idx];
+    if (parentIdx == null) return 0; // no parent, can't compute angle
+
+    const child = landmarks[idx];
+    const parent = landmarks[parentIdx];
+
+    if (
+      !child ||
+      !parent ||
+      child.x == null ||
+      child.y == null ||
+      parent.x == null ||
+      parent.y == null
+    ) {
+      return 0;
+    }
+
+    // compute angle as arctangent of vertical/horizontal displacement
+    const dx = child.x - parent.x;
+    const dy = child.y - parent.y;
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    return Math.round(Math.abs(angle));
+  }
 })();
 // Clean up on page unload
 window.addEventListener("beforeunload", () => {

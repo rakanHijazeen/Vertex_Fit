@@ -8,6 +8,10 @@ class Exercise(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     # Anchor joint index for MediaPipe keypoint tracking (e.g., 16=Wrist, 24=Hip)
     anchor_joint = models.IntegerField(default=24, help_text="MediaPipe keypoint node index")
+    # If true, evaluate horizontal (X) motion instead of vertical (Y)
+    track_horizontally = models.BooleanField(default=False, help_text="If true, track X-axis motion for rep detection")
+    # Secondary MediaPipe node index to use when the primary anchor becomes occluded/unreliable
+    fallback_anchor_joint = models.IntegerField(blank=True, null=True, help_text="Optional fallback node index when the primary anchor is occluded")
     def __str__(self):
         return self.name
 

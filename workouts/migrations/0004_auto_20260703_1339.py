@@ -1,4 +1,3 @@
-# VERTEX_FIT/workouts/migrations/0002_add_and_populate_anchor_joint.py
 from django.db import migrations, models
 
 def seed_master_exercise_matrix(apps, schema_editor):
