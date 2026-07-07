@@ -15,6 +15,8 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         self.setup_complete_sent = False
         self.api_key = getattr(settings, "GEMINI_API_KEY", None)
 
+        self.current_rep_count = 0
+
         if not self.api_key:
             await self.send(json.dumps({"type": "error", "message": "GEMINI_API_KEY is not configured."}))
             await self.close()
@@ -56,7 +58,8 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
 
         if action_type == "session_init":
             exercise_name = data.get("exercise_name", "Workout")
-            await self.init_gemini_live_session(exercise_name)
+            language = data.get("language", "ar") # Default to Arabic if not provided
+            await self.init_gemini_live_session(exercise_name, language)
             return
 
         if action_type == "user_ready":
@@ -66,6 +69,20 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                 pass
 
             if self.google_ws is not None:
+                # Select the prompt language dynamically based on user choice
+                if getattr(self, "language", "ar") == "ar":
+                    phase2_text = (
+                        "انتهت المرحلة الأولى فوراً. اللاعب بدأ تكرارات التمرين الآن (المرحلة الثانية). "
+                        "تحول إلى وضع التتبع الحركي اللحظي الصارم وتجاهل أي تعليمات إعداد سابقة. "
+                        "طبق قوانين الـ VISUAL TRUTH بدقة. قيم الفريمات القادمة بناءً على هذا."
+                    )
+                else:
+                    phase2_text = (
+                        "Phase 1 has ended immediately. The user has started their repetitions now (Phase 2). "
+                        "Switch to strict real-time motion tracking mode and ignore any previous setup instructions. "
+                        "Apply the VISUAL TRUTH rules strictly. Evaluate the incoming frames based on this."
+                    )
+
                 ready_prompt = {
                     "clientContent": {
                         "turns": [
@@ -73,11 +90,7 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                                 "role": "user",
                                 "parts": [
                                     {
-                                        "text": (
-                                            "انتهت المرحلة الأولى فوراً. اللاعب بدأ تكرارات التمرين الآن (المرحلة الثانية). "
-                                            "تحول إلى وضع التتبع الحركي اللحظي الصارم وتجاهل أي تعليمات إعداد سابقة. "
-                                            "طبق قوانين الـ VISUAL TRUTH بدقة. قيم الفريمات القادمة بناءً على هذا."
-                                        )                                    
+                                        "text": phase2_text                                   
                                     }
                                 ],
                             }
@@ -103,6 +116,9 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
 
             frame_data = data.get("frame")
             print(f"DEBUG: Attempting to send frame of size {len(frame_data) if frame_data else 0}")
+
+            # 2. Extract and cache the dynamic rep count sent from the frontend
+            self.current_rep_count = data.get("rep_count", 0)
 
             if not frame_data:
                 print("DEBUG: Frame data is empty!")
@@ -133,8 +149,24 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         try:
             await asyncio.sleep(3.0)
             while self.google_ws is not None:
+                # Format the rep update text dynamically based on the session language
+                if getattr(self, "language", "ar") == "ar":
+                    rep_text = f"العدّة الحالية المكتملة المسجلة من حساسات الحركة: {self.current_rep_count}."
+                else:
+                    rep_text = f"Current completed rep count recorded by motion tracking: {self.current_rep_count}."
+
                 pulse_prompt = {
                     "clientContent": {
+                        "turns": [
+                            {
+                                "role": "user",
+                                "parts": [
+                                    {
+                                        "text": rep_text
+                                    }
+                                ]
+                            }
+                        ],
                         "turnComplete": True
                     }
                 }
@@ -145,9 +177,16 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         except Exception as e:
             print(f"❌ Visual pulse heartbeat loop error: {e}")        
 
-    async def init_gemini_live_session(self, exercise_name):
+    async def init_gemini_live_session(self, exercise_name, language):
         # Fallback to "General Workout" if exercise_name is empty or null
         final_exercise = exercise_name if exercise_name and exercise_name.strip() != "" else "General Workout"
+        # Map the language code to a clear output directive for the model
+        output_language_directive = (
+            "Speak exclusively in natural, friendly, and motivating colloquial Jordanian Arabic." 
+            if language == "ar" else 
+            "Speak exclusively in natural, casual, and motivating English."
+        )
+
         try:
             self.google_ws = await websockets.connect(self.uri)
             self.phase1_triggered = False
@@ -159,28 +198,33 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                         "parts": [
                             {
                                 "text": (
-                                    "You are an encouraging but highly observant Jordanian personal trainer analyzing a live video stream. "
-                                    f"The current exercise is: {final_exercise}.\n\n"
+                                    "You are an encouraging, highly observant personal trainer analyzing a live video stream.\n"
+                                    f"The current exercise is: {final_exercise}.\n"
+                                    f"CRITICAL OUTPUT LANGUAGE RULE: {output_language_directive}\n\n"
                                     
                                     "PHASE 1 (Setup):\n"
-                                    "- Guide the user into the correct starting position using natural, friendly Jordanian Arabic.\n\n"
+                                    "- Guide the user into the correct starting position using a warm, natural tone.\n\n"
                                     
-                                    "PHASE 2 (Live Set Coaching - SEPARATED LOGIC):\n"
-                                    "You must independenty evaluate form errors and positive motivation. Do not blend the rules.\n\n"
+                                    "PHASE 2 (Live Set Coaching):\n"
+                                    "You will receive periodic background updates with the exact current completed rep count (e.g., 'العدّة الحالية المكتملة: 3'). Use this number as your ground-truth reference.\n\n"
                                     
-                                    "1. CRITICAL CORRECTIONS (Absolute Priority Over Hype):\n"
-                                    "   Only speak up if a mistake is blatant and continuous. If you see an error, skip praise completely and issue a brief, natural cue:\n"
-                                    "   - If they rush the descent: Tell them to slow down (e.g., 'نزل براحتك', 'اتحكم بالنزلة').\n"
-                                    "   - If their back is visibly swinging excessively: Tell them to stabilize (e.g., 'ثبت ضهرك', 'بدون مرجحة').\n"
-                                    "   - If their elbows drift completely out of position: Cue them to lock them in (e.g., 'كوعك ثابت', 'خلي كوعك بجنبك').\n\n"
+                                    "1. NO ROBOTIC REPETITION:\n"
+                                    "   Do not repeat the exact same feedback cue word-for-word. Vary your phrasing naturally so you sound like a real person.\n\n"
                                     
-                                    "2. PERIODIC MOTIVATION:\n"
-                                    "   If the form is solid and no error from Rule 1 is occurring, you may occasionally cheer them on. "
-                                    "   Use powerful Jordanian words like 'وحش!', 'كفو!', or 'بطل!'. "
-                                    "   CRITICAL: Only drop a hype word once every 3 or 4 repetitions. Do not shout a motivation word on every single heartbeat pulse.\n\n"
+                                    "2. CRITICAL CORRECTIONS (Priority Over Hype):\n"
+                                    "   If a mistake is blatant and continuous, immediately skip praise and offer a brief, helpful coaching cue (strictly under 5 words):\n"
+                                    "   - Rushing the descent: Cue them to control the eccentric phase (e.g., 'اتحكم بالنزلة' / 'Control the weight').\n"
+                                    "   - Back swinging: Cue them to stabilize their core (e.g., 'ثبت ضهرك' / 'Keep your back still').\n"
+                                    "   - Elbows drifting: Cue them to lock their arms in place (e.g., 'كوعك ثابت' / 'Lock those elbows').\n\n"
                                     
-                                    "3. CONSTRAINTS:\n"
-                                    "   Keep all spoken interventions warm, encouraging, and strictly under 4 words. Never combine a praise word and a correction in the same breath."
+                                    "3. INTEGRATED REP MOTIVATION:\n"
+                                    "   If form is solid, celebrate their progress every 2 or 3 reps by weaving the incoming rep count directly into a motivational phrase:\n"
+                                    "   - Arabic Examples: 'وحش، هانت، كمل للرابعة!' or 'كفو ستة، كمان ثنتين بطل!'\n"
+                                    "   - English Examples: 'Nice, 3 reps down, let's get 4!' or 'Looking strong at 6, two more!'\n"
+                                    "   - Use authentic gym hype words like 'وحش!', 'كفو!', 'بطل!', 'Let's go!', 'Beast mode!'.\n\n"
+                                    
+                                    "4. AUDIO CONSTRAINT:\n"
+                                    "   Keep all spoken interventions strictly under 5 words per breath so you don't break the user's focus or rhythm."
                                 )
                             }
                         ]
@@ -201,26 +245,25 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
             await self.google_ws.send(json.dumps(setup_packet))
             self.gemini_task = asyncio.create_task(self.receive_from_gemini())
 
+            # Start Phase 1 in the requested language
+            p1_text = (
+                "ابدأ المرحلة الأولى: وجّهني لوضعية البداية الصحيحة للتمرين بالتفصيل الممل." 
+                if language == "ar" else 
+                "Start Phase 1: Guide me into the correct starting position for the exercise in detail."
+            )
+
             # Explicitly fire Phase 1 prompt as soon as the session is established
             phase1_prompt = {
                 "clientContent": {
-                    "turns": [
-                        {
-                            "role": "user",
-                            "parts": [
-                                {
-                                    "text": "ابدأ المرحلة الأولى: وجّهني لوضعية البداية الصحيحة للتمرين بالتفصيل."
-                                }
-                            ],
-                        }
-                    ],
+                    "turns": [{"role": "user", "parts": [{"text": p1_text}]}],
                     "turnComplete": True,
                 }
             }
             await self.google_ws.send(json.dumps(phase1_prompt))
             
-            await self.send(json.dumps({"type": "init_status", "msg": "تم تفعيل المدرب المباشر - جاري تهيئة وضعية الإعداد"}))
-
+            status_msg = "تم تفعيل المدرب المباشر" if language == "ar" else "Live coach initialized."
+            await self.send(json.dumps({"type": "init_status", "msg": status_msg}))
+            
         except Exception as exc:
             print(f"❌ Gemini connection failed: {exc}")
             await self.send(json.dumps({"type": "error", "message": "Failed to connect to the live coach."}))

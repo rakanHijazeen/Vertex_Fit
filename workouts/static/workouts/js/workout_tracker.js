@@ -325,6 +325,7 @@
           type: "session_init",
           exercise_name:
             exerciseSelector.options[exerciseSelector.selectedIndex].text,
+          language: document.getElementById("languageSelector").value, // 'ar' or 'en'
         }),
       );
     };
