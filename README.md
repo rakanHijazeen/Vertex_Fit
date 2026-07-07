@@ -24,8 +24,8 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 ### 3. AI Workout Analysis Pipeline
 
 - Connected the app to Gemini-based VLM analysis through a dedicated service layer.
-- Added background task processing for asynchronous analysis of uploaded workout videos.
-- Stored AI-generated coaching feedback and rep-count summaries back into workout session records.
+- Added background task processing for asynchronous analysis of pre-recorded workout video uploads, independent of the live coaching stream.
+- Unified data models to store AI-generated coaching feedback and performance metrics for both live tracker sessions and standalone video file uploads.
 
 ### 4. Live AI Coach (Real-Time Coaching Prototype)
 
@@ -42,6 +42,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 ### 5. Frontend Coaching UI
 
+- Developed a unified Workout History Dashboard that allows users to review past training metrics, track active sessions, or directly upload pre-recorded videos for retroactive AI analysis.
 - Added a live workout tracker page with camera preview, coaching status, mode indicators, and rep count display.
 - Implemented workflow buttons for starting the camera, beginning the set, stopping the live session, and opening the post-session analysis view.
 - Added a language dropdown so users can choose between English and Arabic report output for the AI coaching feedback.
