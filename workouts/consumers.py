@@ -16,6 +16,7 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         self.api_key = getattr(settings, "GEMINI_API_KEY", None)
 
         self.current_rep_count = 0
+        self.language = "ar"  # Clean fallback tracking variable initial state
 
         if not self.api_key:
             await self.send(json.dumps({"type": "error", "message": "GEMINI_API_KEY is not configured."}))
@@ -58,8 +59,13 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
 
         if action_type == "session_init":
             exercise_name = data.get("exercise_name", "Workout")
-            language = data.get("language", "ar") # Default to Arabic if not provided
-            await self.init_gemini_live_session(exercise_name, language)
+            # Normalize the incoming string (e.g., handles "AR", "ar ", etc.)
+            raw_lang = str(data.get("language", "ar")).strip().lower()
+            
+            # Match safely
+            self.language = "ar" if "ar" in raw_lang else "en"
+            
+            await self.init_gemini_live_session(exercise_name, self.language)
             return
 
         if action_type == "user_ready":
@@ -70,7 +76,7 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
 
             if self.google_ws is not None:
                 # Select the prompt language dynamically based on user choice
-                if getattr(self, "language", "ar") == "ar":
+                if self.language == "ar":
                     phase2_text = (
                         "انتهت المرحلة الأولى فوراً. اللاعب بدأ تكرارات التمرين الآن (المرحلة الثانية). "
                         "تحول إلى وضع التتبع الحركي اللحظي الصارم وتجاهل أي تعليمات إعداد سابقة. "
@@ -150,7 +156,7 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
             await asyncio.sleep(3.0)
             while self.google_ws is not None:
                 # Format the rep update text dynamically based on the session language
-                if getattr(self, "language", "ar") == "ar":
+                if self.language == "ar":
                     rep_text = f"العدّة الحالية المكتملة المسجلة من حساسات الحركة: {self.current_rep_count}."
                 else:
                     rep_text = f"Current completed rep count recorded by motion tracking: {self.current_rep_count}."
@@ -203,11 +209,16 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
                                     f"CRITICAL OUTPUT LANGUAGE RULE: {output_language_directive}\n\n"
                                     
                                     "PHASE 1 (Setup):\n"
-                                    "- Guide the user into the correct starting position using a warm, natural tone.\n\n"
+                                    "- Guide the user into the correct starting position using a warm, natural tone(be specific).\n\n"
                                     
                                     "PHASE 2 (Live Set Coaching):\n"
                                     "You will receive periodic background updates with the exact current completed rep count (e.g., 'العدّة الحالية المكتملة: 3'). Use this number as your ground-truth reference.\n\n"
                                     
+                                    "0. THE ZERO-REP RULE (CRITICAL SILENCE):\n"
+                                    "   If the current completed rep count is 0, REMAIN COMPLETELY SILENT unless there is a severe form mistake. "
+                                    "   Do NOT offer any motivational words, hype, or praise before the user completes their very first rep. "
+                                    "   Only start cheering them on or tracking progress once the rep count updates to 1 or higher.\n\n"
+
                                     "1. NO ROBOTIC REPETITION:\n"
                                     "   Do not repeat the exact same feedback cue word-for-word. Vary your phrasing naturally so you sound like a real person.\n\n"
                                     
