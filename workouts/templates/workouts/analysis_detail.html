@@ -86,7 +86,7 @@
         </header>
 
         <!-- Main Dashboard Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="analysis-grid" data-status="{{ session.status }}">
 
             <!-- Left Panel: Video Playback & Session Summary Metrics -->
             <div class="lg:col-span-1 space-y-6">
@@ -141,9 +141,8 @@
                             ✨
                         </div>
                         <div>
-                            <h2 class="text-lg font-bold text-white">Gemini VLM Executive Coaching</h2>
-                            <p class="text-xs text-slate-400">Deep bio-mechanical analysis of form, posture, and
-                                temporal pacing</p>
+                            <h2 class="text-lg font-bold text-white">AI Coach Breakdown</h2>
+                            <p class="text-xs text-slate-400">Smart feedback on your form, posture, and pacing.</p>
                         </div>
                     </div>
 
@@ -179,24 +178,23 @@
         document.addEventListener("DOMContentLoaded", () => {
             const rawSource = document.getElementById("raw-markdown-source");
             const targetContainer = document.getElementById("markdown-target");
+            const analysisGrid = document.getElementById("analysis-grid");
 
+            // 1. If analysis text exists, parse and display it cleanly
             if (rawSource && targetContainer) {
-                // Extract raw unescaped context text string strings safely from container reference nodes
                 const rawMarkdown = rawSource.textContent || rawSource.innerText;
-
-                // Set options for safety and line breaks
                 marked.setOptions({
                     breaks: true,
                     gfm: true
                 });
-
-                // Compile and inner map layout view block strings to standard template nodes
                 targetContainer.innerHTML = marked.parse(rawMarkdown);
-            } else {
-                // If the session hasn't been analyzed yet, poll every 3 seconds to check for updates
+            }
+
+            // 2. Pure JS Auto-Refresh: Read the status attribute directly from the HTML element
+            if (analysisGrid && analysisGrid.dataset.status === 'pending') {
                 setTimeout(() => {
                     window.location.reload();
-                }, 3000);
+                }, 3000); // Reloads every 3 seconds while status is 'pending'
             }
         });
     </script>

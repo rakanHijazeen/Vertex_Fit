@@ -21,7 +21,7 @@ class WorkoutSession(models.Model):
     
     # Explicit status state tracking matrix for background async execution (Phase 4.3)
     STATUS_CHOICES = [
-        ('pending', 'Pending VLM Processing'),
+        ('pending', 'Analyzing Form...'),
         ('completed', 'Analysis Complete'),
         ('failed', 'Analysis Failed'),
     ]

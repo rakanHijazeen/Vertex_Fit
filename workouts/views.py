@@ -153,3 +153,13 @@ def workout_analysis_page_view(request, session_id):
     }
     
     return render(request, 'workouts/analysis_detail.html', context)
+
+@login_required(login_url='/api/auth/login/')
+def workout_dashboard(request):
+    """Lists all historical sessions and provides a retroactive upload point."""
+    # Fetch all sessions for this user, ordered by most recent
+    sessions = WorkoutSession.objects.filter(user=request.user).order_by('-timestamp')
+    
+    return render(request, 'workouts/dashboard.html', {
+        'sessions': sessions
+    })

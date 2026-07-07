@@ -1,4 +1,5 @@
 from django.urls import path
+from workouts import views
 from .views import (
     WorkoutVideoUploadView, 
     WorkoutSessionDetailView, 
@@ -16,4 +17,6 @@ urlpatterns = [
     
     # 3. The dedicated HTML page to display the deep post-set analysis
     path('session/<int:session_id>/analysis/', workout_analysis_page_view, name='workout_analysis_page'),
-]
+    # 4. Dashboard index log feed
+    path('dashboard/', views.workout_dashboard, name='workout_dashboard'),
+    ]
