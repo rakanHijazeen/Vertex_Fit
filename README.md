@@ -34,6 +34,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Added browser-side camera capture, frame streaming, and audio playback for live coaching feedback.
 - Added MediaPipe-based pose estimation so the app can track body landmarks, draw skeletal lines, and display active joint information in real time.
 - Implemented exercise-aware rep counting logic that tracks movement through a dynamic anchor joint and records rep totals during live sessions.
+- The live coach now receives rep-count context during Phase 2 so its coaching can reference the current completed reps, and it can respond in both English and Arabic.
 - Built a two-phase coaching experience:
   - Phase 1: initialization and setup guidance
   - Phase 2: live frame-based coaching after user readiness is confirmed
