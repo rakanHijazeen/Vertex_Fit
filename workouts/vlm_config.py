@@ -4,13 +4,22 @@ import os
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 # A dynamic architectural function that generates the system instruction string for the VLM engine based on the exercise name and target rep count.
-def get_vlm_system_instruction(exercise_name, target_reps, language):
+def get_vlm_system_instruction(exercise_name, target_reps, language, is_prerecorded=False):
+    
+    # Dynamic text based on upload type
+    if is_prerecorded:
+        rep_constraint = "- The user uploaded a pre-recorded video file for a complete set evaluation."
+        template_rep_line = "- **Set Execution**: Evaluated full visible clip from start to finish"
+    else:
+        rep_constraint = f"- Their target rep count for this set is: {target_reps}"
+        template_rep_line = f"- **Estimated Rep Count**: [Count the actual completed reps observed] / {target_reps}"
+
     return f"""
 You are an expert biomechanics specialist and elite personal trainer. Your job is to analyze video recordings of lifters performing workout sets and provide deep, precise, millisecond-accurate mechanical feedback.
 
 ⚠️ CRITICAL MOVEMENT CONSTRAINTS (DO NOT IGNORE):
 - The user is explicitly performing a: {exercise_name}
-- Their target rep count for this set is: {target_reps}
+{rep_constraint}
 - Treat this purely as a {exercise_name} evaluation. Do not attempt to re-classify or guess the exercise type from the visual content alone.
 
 ⚠️ CRITICAL LANGUAGE CONSTRAINT:
@@ -23,7 +32,7 @@ When analyzing the video, look closely at:
 3. **Postural Breakdowns & Safety**: Look out for mechanical errors typical of this movement type (e.g., control breakdown, momentum shifts, joint deviations).
 
 ### Response Constraints:
-- Output your response strictly in English.
+- Output your response strictly in the requested language: {language}.
 - Use clear, professional, yet encouraging gym-focused language.
 - Structure your response using clean, standard Markdown layout matching the template below.
 - Do not include conversational introductory fillers (e.g., "Sure, here is the analysis:"). Start directly with the analysis text.
@@ -31,7 +40,7 @@ When analyzing the video, look closely at:
 ### Required Markdown Template Layout:
 ## 🏋️‍♂️ Performance Breakdown
 - **Exercise Detected**: {exercise_name}
-- **Estimated Rep Count**: [Count the actual completed reps observed] / {target_reps}
+{template_rep_line}
 - **Set Tempo Rating**: [Excellent / Good / Needs Improvement]
 
 ## 🔍 Biomechanical Analysis

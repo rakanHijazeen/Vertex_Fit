@@ -27,8 +27,11 @@ class GeminiVLMService:
         Passes a secure S3 storage location path or public stream URL to Gemini Flash for deep
         form, tempo, and range of motion breakdown analysis.
         """
+        # Automatically detect if this is a pre-recorded video without live tracker interaction
+        is_prerecorded = (target_reps == 0)
+
         # 💡 Call the dynamic function from vlm_config instead of reading a static attribute
-        system_instruction = vlm_config.get_vlm_system_instruction(exercise_name, target_reps, language)
+        system_instruction = vlm_config.get_vlm_system_instruction(exercise_name, target_reps, language, is_prerecorded=is_prerecorded)
 
         try:
             config = types.GenerateContentConfig(

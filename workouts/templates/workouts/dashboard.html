@@ -283,6 +283,9 @@
             // Match exactly request.data.get('exercise_id') payload configuration name
             formData.append("exercise_id", document.getElementById('retroExerciseSelector').value);
 
+            // Explicitly send 0 reps for standalone pre-recorded uploads
+            formData.append('rep_count', 0);
+
             try {
                 const response = await fetch("/api/workouts/upload/", {
                     method: "POST",

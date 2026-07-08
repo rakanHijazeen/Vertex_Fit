@@ -116,10 +116,23 @@
                         Set Performance</h3>
 
                     <div class="grid grid-cols-2 gap-4">
+
+                        {% if session.rep_count and session.rep_count > 0 %}
                         <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
-                            <p class="text-xs text-slate-400 font-medium">Target Reps</p>
-                            <p class="text-2xl font-black text-white mt-1">{{ session.rep_count|default:"0" }}</p>
+                            <p class="text-xs text-slate-400 font-medium">Completed Reps</p>
+                            <p class="text-2xl font-black text-white mt-1">{{ session.rep_count }}</p>
                         </div>
+                        {% else %}
+                        <div
+                            class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50 flex flex-col justify-between">
+                            <p class="text-xs text-slate-400 font-medium">Analysis Type</p>
+                            <p
+                                class="text-xs font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded tracking-wide uppercase mt-2 inline-block self-start">
+                                File Upload
+                            </p>
+                        </div>
+                        {% endif %}
+
                         <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-700/50">
                             <p class="text-xs text-slate-400 font-medium">Status</p>
                             <p
