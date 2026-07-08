@@ -46,7 +46,6 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Developed a unified Workout History Dashboard that allows users to review past training metrics, track active sessions, or directly upload pre-recorded videos for retroactive AI analysis.
 - Added a live workout tracker page with camera preview, coaching status, mode indicators, and rep count display.
 - Implemented workflow buttons for starting the camera, beginning the set, stopping the live session, and opening the post-session analysis view.
-- Added a language dropdown so users can choose between English and Arabic report output for the AI coaching feedback.
 - Overlaid pose landmarks and skeletal connection lines on the video feed to support form tracking and visual feedback.
 - Wired the UI to the websocket-based coaching backend.
 - The final action button now routes the user to a dedicated analysis page that displays the recorded set video alongside the Gemini VLM coaching breakdown and performance summary.
