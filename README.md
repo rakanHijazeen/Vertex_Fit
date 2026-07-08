@@ -15,17 +15,18 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Added profile management for body metrics, fitness goals, and premium-related fields.
 - Created workout session persistence for exercise tracking and AI feedback history.
 
-### 2. Video Upload and Cloud Storage Pipeline
+### 2. Unified Video Upload and Cloud Storage Pipeline
 
-- Added workout video upload endpoints that accept multipart camera/video payloads.
-- Integrated AWS S3 for secure video storage and signed URL generation.
-- Configured upload flows that preserve workout assets for later analysis and playback.
+- **Dual-Mode Session Processing**: Fully integrated support for tracking workout sets through two distinct user pipelines:
+  - **Live AI Coaching**: Captures and analyzes interactive device camera clips along with exact real-time rep counts mapped directly from active frontend state-machine trackers.
+  - **Retroactive Video Uploads**: Allows instant file drops of pre-recorded sets from an administrative dashboard, dynamically skipping live metrics math and scaling cleanly as a standalone video review tool.
+- Integrated AWS S3 for secure, fast video persistence and expiring pre-signed playback URL streaming.
 
-### 3. AI Workout Analysis Pipeline
+### 3. Context-Aware AI Workout Analysis Engine (VLM)
 
-- Connected the app to Gemini-based VLM analysis through a dedicated service layer.
-- Added background task processing for asynchronous analysis of pre-recorded workout video uploads, independent of the live coaching stream.
-- Unified data models to store AI-generated coaching feedback and performance metrics for both live tracker sessions and standalone video file uploads.
+- **Dynamic Context Prompting**: Powered by `gemini-2.5-flash` using a dynamic system instruction builder that adapts its structural guidelines depending on the tracking method (Live Coach vs. Pre-recorded Review).
+- **Persistent Global Localization**: Implemented client-side caching (`localStorage`) to synchronize localized report targets across pages. The backend extracts choices automatically to generate full markdown feedback reviews matching the selected language profile (e.g., Arabic, English) seamlessly without schema bloat.
+- **Adaptive Frontend Rendering**: Uses Django template tags (`{% if %}`) within a unified layout page to show performance badges dynamically while automatically omitting redundant metric layouts (like a hardcoded '0 Reps' indicator) for pre-recorded media files.
 
 ### 4. Live AI Coach (Real-Time Coaching Prototype)
 
