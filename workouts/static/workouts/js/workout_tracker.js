@@ -310,6 +310,11 @@
   }
 
   function buildWebSocket() {
+    // 1. Read the synchronized readable language from localStorage
+    const storedLang = localStorage.getItem("vertex_fit_lang") || "English";
+
+    // 2. Map it cleanly to the 'ar' or 'en' code strings your backend expects
+    const websocketLanguageCode = storedLang === "Arabic" ? "ar" : "en";
     const wsScheme = window.location.protocol === "https:" ? "wss://" : "ws://";
     websocket = new WebSocket(
       `${wsScheme}${window.location.host}/ws/live-coaching/`,
@@ -325,7 +330,7 @@
           type: "session_init",
           exercise_name:
             exerciseSelector.options[exerciseSelector.selectedIndex].text,
-          language: document.getElementById("languageSelector").value, // 'ar' or 'en'
+          language: websocketLanguageCode,
         }),
       );
     };
@@ -718,9 +723,18 @@
   }
 
   async function uploadVideoForAnalysis(videoBlob) {
+    if (!videoBlob) return;
+
+    // 1. Update the sidebar guide text status
+    guideText.textContent =
+      "⏳ Preparing high-definition video chunk upload...";
+
     const exerciseId = exerciseSelector.value;
     const currentReps = repCounter ? repCounter.getRepCount() : 0;
-    const preferredLanguage = document.getElementById("languageSelector").value;
+
+    // Read from localStorage instead of the old DOM element ID
+    const preferredLanguage =
+      localStorage.getItem("vertex_fit_lang") || "English";
 
     const formData = new FormData();
     // 'video' matches request.data.get('video') in your view

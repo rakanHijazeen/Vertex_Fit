@@ -32,6 +32,9 @@ class WorkoutVideoUploadView(APIView):
         exercise_param = request.data.get('exercise_id')
         video_file = request.data.get('video') # The phone passes the automated capture payload here
 
+        # 🌟 Extract the language parameter from the payload, defaulting to 'English'
+        language_param = request.data.get('language', 'English')
+
         if not video_file:
             return Response({"error": "No recorded video stream received from device camera."}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -68,7 +71,7 @@ class WorkoutVideoUploadView(APIView):
             rep_count=int(request.data.get('rep_count', 0)),
             status='pending',
             vlm_feedback="Form analysis is processing...",
-            report_language=request.data.get('language', 'English'),
+            report_language=language_param,
         )
 
         # 3. Process the VLM analysis synchronously for local dev testing

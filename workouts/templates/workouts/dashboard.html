@@ -55,6 +55,16 @@
                 Sign Out
             </a>
         </nav>
+        <div>
+            <label for="globalLanguageSelector"
+                class="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Analysis
+                Language</label>
+            <select id="globalLanguageSelector"
+                class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 transition">
+                <option value="English">English</option>
+                <option value="Arabic">Arabic (العربية)</option>
+            </select>
+        </div>
     </header>
 
     <main class="flex-1 overflow-y-auto p-6 max-w-7xl w-full mx-auto space-y-8">
@@ -232,6 +242,22 @@
         const statusText = document.getElementById('uploadStatus');
         const uploadPromptText = document.getElementById('uploadPromptText');
 
+        // This handles your language state tracking globally on initialization
+        document.addEventListener("DOMContentLoaded", () => {
+            const langSelector = document.getElementById("globalLanguageSelector");
+
+            // 1. Load saved language preference on page initialize
+            const savedLang = localStorage.getItem("vertex_fit_lang") || "English";
+            if (langSelector) langSelector.value = savedLang;
+
+            // 2. Save preference immediately whenever the user changes it
+            if (langSelector) {
+                langSelector.addEventListener("change", (e) => {
+                    localStorage.setItem("vertex_fit_lang", e.target.value);
+                });
+            }
+        });
+
         // Toggle file dialogue click handler
         dropzone.addEventListener('click', () => fileInput.click());
 
@@ -285,6 +311,10 @@
 
             // Explicitly send 0 reps for standalone pre-recorded uploads
             formData.append('rep_count', 0);
+
+            // Dynamically attach the saved localStorage language selection right to the payload
+            const currentLang = localStorage.getItem("vertex_fit_lang") || "English";
+            formData.append('language', currentLang);
 
             try {
                 const response = await fetch("/api/workouts/upload/", {
