@@ -14,6 +14,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Implemented a custom user model using email-based authentication.
 - Added profile management for body metrics, fitness goals, and premium-related fields.
 - Created workout session persistence for exercise tracking and AI feedback history.
+- Expanded the profile schema to support demographic tracking fields including tracking **Gender** to drive highly personalized baseline physiological coaching recommendations.
 
 ### 2. Unified Video Upload and Cloud Storage Pipeline
 
@@ -50,6 +51,12 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Wired the UI to the websocket-based coaching backend.
 - The final action button now routes the user to a dedicated analysis page that displays the recorded set video alongside the Gemini VLM coaching breakdown and performance summary.
 
+### 6. Context-Aware Personal AI Chat Engine
+
+- **Deep Profile & Workout Ingestion**: Designed a data-compilation pipeline inside the chat service layer that dynamically pulls the user's active biometric profile (including the newly added **Gender** field, height, weight, and fitness goals) along with their **last 5 historical workout session reports** to feed directly into the Gemini system instructions.
+- **Persistent Chat History & Session Caching**: Built a historical message recovery system using a dedicated REST API endpoint (`/api/workouts/chat/history/<thread_id>/`) paired with client-side `localStorage` caching to persist user thread IDs seamlessly across page refreshes.
+- **Asynchronous Dual-Layer Communication**: Integrated WebSocket state machines to keep user chat workflows dynamic, real-time, and light on database threads.
+
 ---
 
 ## 🧱 Current Architecture
@@ -85,6 +92,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Custom email-based authentication user model
 - Atomic registration flow with JWT token issuance
 - Profile model linked to each user
+- Profile model linked to each user tracking biometrics, goals, and **Gender definitions**.
 
 ### Workouts
 
@@ -114,6 +122,8 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Live websocket coach prototype with browser camera integration
 - Real-time pose tracking with skeletal lines and landmark overlays
 - Exercise-specific rep counting for live workout sessions
+- **Persistent, Context-Aware Conversational AI Chat**: Implemented a stateful personal chat engine featuring full historical message loading mechanics. The background pipeline dynamically injects user biometric parameters alongside their last 5 historical workout session reports directly into the LLM context for hyper-personalized coaching feedback.
+- **Biometric Schema Expansion**: Added gender tracking attributes to the `Profile` authentication models, fully backed by active database schema migrations.
 
 ### In Progress / Active Focus
 
