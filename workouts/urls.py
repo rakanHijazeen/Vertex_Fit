@@ -19,4 +19,10 @@ urlpatterns = [
     path('session/<int:session_id>/analysis/', workout_analysis_page_view, name='workout_analysis_page'),
     # 4. Dashboard index log feed
     path('dashboard/', views.workout_dashboard, name='workout_dashboard'),
-    ]
+    # 5. Chat thread initialization endpoint for the personalized AI assistant
+    path('chat/thread/', views.get_or_create_chat_thread, name='chat_thread_init'),
+    # 6. AI chat coach view
+    path('chat/', views.ai_chat_coach_view, name='ai_chat_coach'),
+    # 7. API endpoint to fetch historical chat messages for a given thread
+    path('chat/history/<int:thread_id>/', views.get_chat_history_api, name='chat_history_api'),
+]

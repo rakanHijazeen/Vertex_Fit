@@ -53,6 +53,7 @@ class Profile(models.Model):
     ]
 
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    gender = models.CharField(max_length=10, choices=[('Male', 'Male'), ('Female', 'Female')], null=True, blank=True)
     date_of_birth = models.DateField(null=True, blank=True)
     height = models.FloatField(help_text="Height in cm", null=True, blank=True)
     target_weight = models.FloatField(help_text="Target weight in kg", null=True, blank=True)

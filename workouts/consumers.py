@@ -1,6 +1,10 @@
 import asyncio
 import json
 import websockets
+from channels.db import database_sync_to_async
+from google.genai import types
+from .models import ChatThread, ChatMessage
+from .chat_service import PersonalAIContextService
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
 
@@ -321,3 +325,103 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
             raise
         except Exception as exc:
             print(f"❌ Receive loop error: {exc}")
+
+class PersonalChatConsumer(AsyncWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Explicitly typed class property to safely satisfy Pylance
+        self.user = None
+
+    async def connect(self):
+        # 1. Type-safe scope dictionary access using .get()
+        self.user = self.scope.get("user")
+        
+        # 2. Explicitly verify the user exists and is fully authenticated
+        if self.user and hasattr(self.user, "is_authenticated") and self.user.is_authenticated:
+            await self.accept()
+        else:
+            await self.close(code=4003)  # Deny connection if unauthenticated
+
+    async def disconnect(self, close_code):
+        pass
+
+    async def receive(self, text_data=None, bytes_data=None):
+        """Processes incoming dashboard messages and streams back personalized responses."""
+        if not text_data or not self.user:
+            return
+
+        try:
+            data = json.loads(text_data)
+        except json.JSONDecodeError:
+            await self.send(json.dumps({"type": "error", "message": "Invalid JSON payload."}))
+            return
+
+        thread_id = data.get("thread_id")
+        message_text = data.get("message")
+
+        if not message_text or not thread_id:
+            await self.send(json.dumps({"type": "error", "message": "Missing thread_id or message body."}))
+            return
+
+        # Save incoming message
+        await self.save_message(thread_id, 'user', message_text)
+
+        try:
+            chat_service = PersonalAIContextService(self.user)
+            system_prompt = await database_sync_to_async(chat_service._compile_user_context)()
+            formatted_history = await self.build_async_history(thread_id)
+
+            # Build the chat session
+            chat = chat_service.client.chats.create(
+                model=chat_service.model_name,
+                history=formatted_history,
+                config=types.GenerateContentConfig(
+                    system_instruction=system_prompt,
+                    temperature=0.7,
+                )
+            )
+
+            # Dispatch the message to Gemini and stream the response back to the frontend
+            response_stream = chat.send_message_stream(message_text)
+            
+            full_response_accumulated = ""
+            for chunk in response_stream:
+                if chunk.text:
+                    full_response_accumulated += chunk.text
+                    await self.send(json.dumps({
+                        "type": "text_chunk",
+                        "text": chunk.text
+                    }))
+
+            # Save the fully accumulated response
+            await self.save_message(thread_id, 'model', full_response_accumulated)
+            await self.send(json.dumps({"type": "stream_finished"}))
+
+        except Exception as e:
+            await self.send(json.dumps({"type": "error", "message": str(e)}))
+
+    @database_sync_to_async
+    def save_message(self, thread_id, role, content):
+        """Database helper to safely log chat rows inside an async loop."""
+        thread = ChatThread.objects.get(id=thread_id, user=self.user)
+        return ChatMessage.objects.create(thread=thread, role=role, content=content)
+
+    @database_sync_to_async
+    def build_async_history(self, thread_id):
+        """Asynchronously converts database messages into Google SDK content schemas."""
+        thread = ChatThread.objects.get(id=thread_id, user=self.user)
+        raw_history = ChatMessage.objects.filter(thread=thread).order_by('timestamp')
+        
+        history_list = list(raw_history)
+        if history_list:
+            history_list.pop() 
+
+        formatted_history = []
+        for msg in history_list:
+            formatted_history.append(
+                types.Content(
+                    role='user' if msg.role == 'user' else 'model',
+                    parts=[types.Part.from_text(text=msg.content)]
+                )
+            )
+        return formatted_history

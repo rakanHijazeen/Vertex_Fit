@@ -56,3 +56,31 @@ class WorkoutSession(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.exercise.name} ({self.timestamp.strftime('%Y-%m-%d')}) [{self.status}]"
+
+class ChatThread(models.Model):
+    """Represents a single conversational thread between the user and the AI model."""
+    # Each user can have multiple threads, each with its own context and history.
+    id = models.AutoField(primary_key=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='chat_threads')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"Chat for {self.user.email} - {self.created_at.strftime('%Y-%m-%d')}"
+
+class ChatMessage(models.Model):
+    """Represents a single message in a chat thread, either from the user or the AI model."""
+    ROLE_CHOICES = (
+        ('user', 'User'),
+        ('model', 'Model'),
+    )
+    thread = models.ForeignKey(ChatThread, on_delete=models.CASCADE, related_name='messages')
+    role = models.CharField(max_length=10, choices=ROLE_CHOICES)
+    content = models.TextField()
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['timestamp']
+
+    def __str__(self):
+        return f"{self.role.capitalize()}: {self.content[:30]}..."

@@ -1,3 +1,4 @@
+from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from rest_framework.views import APIView
@@ -9,7 +10,7 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.parsers import MultiPartParser, FormParser
 
 from .utils import S3Service
-from .models import WorkoutSession, Exercise
+from .models import WorkoutSession, Exercise, ChatThread, ChatMessage
 
 # From your upcoming background workers module (Step 4.2):
 from .tasks import process_vlm_coaching_analysis
@@ -166,3 +167,42 @@ def workout_dashboard(request):
     return render(request, 'workouts/dashboard.html', {
         'sessions': sessions
     })
+
+@login_required(login_url='/api/auth/login/')
+def get_or_create_chat_thread(request):
+    """
+    Provides a lightweight initialization hook for the frontend dashboard.
+    Fetches the user's active chat session thread or instances a new one
+    so the UI can bind onto a unique ID during the WebSocket handshake.
+    """
+    thread, created = ChatThread.objects.get_or_create(user=request.user)
+    return JsonResponse({
+        'status': 'success',
+        'thread_id': thread.id
+    })
+
+@login_required(login_url='/api/auth/login/')
+def ai_chat_coach_view(request):
+    """Renders the dedicated real-time chat interface layout page."""
+    return render(request, 'workouts/chat.html')
+
+@login_required(login_url='/api/auth/login/')
+def get_chat_history_api(request, thread_id):
+    """Returns all historical messages for a specific thread to restore UI state on refresh."""
+    try:
+        thread = ChatThread.objects.get(id=thread_id, user=request.user)
+        messages = ChatMessage.objects.filter(thread=thread).order_by('timestamp')
+        
+        serialized_messages = [
+            {
+                'role': msg.role,
+                'content': msg.content
+            } for msg in messages
+        ]
+        
+        return JsonResponse({
+            'status': 'success',
+            'messages': serialized_messages
+        })
+    except ChatThread.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Thread not found'}, status=404)
