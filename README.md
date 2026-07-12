@@ -15,6 +15,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Added profile management for body metrics, fitness goals, and premium-related fields.
 - Created workout session persistence for exercise tracking and AI feedback history.
 - Expanded the profile schema to support demographic tracking fields including tracking **Gender** to drive highly personalized baseline physiological coaching recommendations.
+- Robust Hybrid Authentication: Implemented a secure, hybrid authentication system that reconciles Django session-based security (for template-rendered pages) with JWT-based authentication (for API/WebSocket workflows). This includes dynamic secure-cookie handling, server-side **@login_required** route protection, and seamless token persistence via silent refresh patterns.
 
 ### 2. Unified Video Upload and Cloud Storage Pipeline
 
@@ -89,10 +90,13 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 ### Authentication
 
-- Custom email-based authentication user model
-- Atomic registration flow with JWT token issuance
-- Profile model linked to each user
-- Profile model linked to each user tracking biometrics, goals, and **Gender definitions**.
+- Secure, email-based authentication with hybrid Session/JWT persistence.
+
+- Dynamic cookie security management for multi-environment (HTTP/HTTPS) compatibility.
+
+- Atomic registration flow with immediate session establishment.
+
+- Authenticated profile management tracking biometrics, goals, and gender definitions.
 
 ### Workouts
 
@@ -115,13 +119,13 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 ### Completed
 
 - Core Django project scaffolding
-- Authentication and user profile system
 - Workout session and exercise models
 - S3 media upload pipeline
 - VLM-based workout analysis pipeline
 - Live websocket coach prototype with browser camera integration
 - Real-time pose tracking with skeletal lines and landmark overlays
 - Exercise-specific rep counting for live workout sessions
+- Secure Auth Integration: Successfully transitioned to a unified authentication architecture, eliminating redirection loops, resolving CSRF/JWT conflicts, and implementing silent token refresh for persistent state across the platform.
 - **Persistent, Context-Aware Conversational AI Chat**: Implemented a stateful personal chat engine featuring full historical message loading mechanics. The background pipeline dynamically injects user biometric parameters alongside their last 5 historical workout session reports directly into the LLM context for hyper-personalized coaching feedback.
 - **Biometric Schema Expansion**: Added gender tracking attributes to the `Profile` authentication models, fully backed by active database schema migrations.
 
