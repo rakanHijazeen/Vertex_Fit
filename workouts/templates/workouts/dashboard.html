@@ -46,8 +46,7 @@
                 class="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5">
                 <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Coach
             </a>
-            <a href="{% url 'workout_dashboard' %}"
-                class="text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 pb-1 px-1">
+            <a href="#" class="text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 pb-1 px-1">
                 Dashboard
             </a>
             <a href="{% url 'ai_chat_coach' %}"
@@ -434,7 +433,7 @@
             formData.append('language', currentLang);
 
             try {
-                const response = await fetch("/workouts/upload/", {
+                const response = await fetch("/api/workouts/upload/", {
                     method: "POST",
                     body: formData,
                     headers: {
