@@ -8,7 +8,7 @@ User = get_user_model()
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = Profile
-        fields = ['date_of_birth', 'height', 'target_weight', 'fitness_goal']
+        fields = ['gender','date_of_birth', 'height', 'target_weight', 'fitness_goal']
 
 
 class RegistrationSerializer(serializers.ModelSerializer):

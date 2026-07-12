@@ -18,20 +18,34 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
+from django.views.generic import RedirectView
+from authentication.views import (
+    RegistrationAPIView, login_page, LogoutAPIView, signup_page,
+    LoginAPIView, ProductionTokenRefreshAPIView
 )
-from authentication.views import RegistrationAPIView
 
 urlpatterns = [
+    # Auto-Redirect empty root URL to the web interface login template
+    path('', RedirectView.as_view(url='auth/login/', permanent=False), name='root_redirect'),
     path('admin/', admin.site.urls),
-    # 🔐 Authentication Engine Endpoints
-    path('api/auth/register/', RegistrationAPIView.as_view(), name='auth_register'),
-    path('api/auth/login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),    
+
+    # Auth Views
+    path('auth/login/', login_page, name='login_page'),
+    path('auth/signup/', signup_page, name='signup_page'),
+
     # Connect the Workouts App routing (Handles both API endpoints and the HTML Tracker)
-    path('api/workouts/', include('workouts.urls')),    
+    path('api/workouts/', include('workouts.urls')),
+
+    # Backend Authentication Engine Endpoints
+    path('api/auth/register/', RegistrationAPIView.as_view(), name='auth_register'),
+    path('api/auth/login/', LoginAPIView.as_view(), name='token_obtain_pair'),
+    path('api/auth/refresh/', ProductionTokenRefreshAPIView.as_view(), name='token_refresh'),  
+    path('api/auth/logout/', LogoutAPIView.as_view(), name='token_blacklist'), 
+
+    # Internal API routing for the Authentication App (Handles both API endpoints and the HTML login/signup pages)
+    path('api/auth-core/', include('authentication.urls', namespace='authentication')),
+
+        
 ]
 
 

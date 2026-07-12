@@ -25,7 +25,7 @@ class WorkoutVideoUploadView(APIView):
     Handles automated multipart streams recorded directly from the device camera,
     uploads them to S3, and hands off processing to the background worker loop.
     """
-    authentication_classes = [JWTAuthentication, CsrfExemptSessionAuthentication] #
+    authentication_classes = [JWTAuthentication] #
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser, FormParser] # Needed to receive binary streams from the mobile client
 
@@ -98,17 +98,30 @@ class WorkoutSessionDetailView(APIView):
     Enforces absolute privacy protection. Fetches analytics metadata and generates
     a short-lived secure streaming link ONLY if the authenticated user owns the record.
     """
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def get(self, request, session_id, format=None):
+    # Make session_id default to None to handle both lists and details
+    def get(self, request, session_id=None, format=None):
+        
+        # CASE 1: No session_id provided -> Return the full history list for the dashboard
+        if session_id is None:
+            sessions = WorkoutSession.objects.filter(user=request.user).order_by('-timestamp')
+            data = [{
+                "session_id": s.id,
+                "exercise": s.exercise.name,
+                "rep_count": s.rep_count,
+                "status": s.status,
+                "timestamp": s.timestamp.isoformat()
+            } for s in sessions]
+            return Response(data, status=status.HTTP_200_OK)
+
+        # 🔍 CASE 2: Specific session_id provided -> Fetch single video streaming details
         try:
-            # STRICT OWNERSHIP FILTER: Enforces user isolation directly at the query level
             workout_session = WorkoutSession.objects.get(id=session_id, user=request.user)
         except WorkoutSession.DoesNotExist:
-            # Mask database contents with a standard 404 to block malicious endpoint enumeration
             return Response({"error": "Workout session not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        # Generate a secure, 60-minute expiring pre-signed S3 URL for streaming back to the user's phone
         fresh_stream_url = S3Service.generate_presigned_url(workout_session.video_url)
 
         return Response({
@@ -116,7 +129,7 @@ class WorkoutSessionDetailView(APIView):
             "exercise": workout_session.exercise.name,
             "rep_count": workout_session.rep_count,
             "vlm_feedback": workout_session.vlm_feedback,
-            "stream_url": fresh_stream_url,  # Secure, expiring access target
+            "stream_url": fresh_stream_url,
             "timestamp": workout_session.timestamp
         }, status=status.HTTP_200_OK)
 
@@ -125,11 +138,10 @@ class WorkoutSessionDetailView(APIView):
 # PRODUCTION TEMPLATE VIEW ADDITION
 # ==========================================
 
-@login_required(login_url='/api/auth/login/') # Fallback redirect path if token is empty
+@login_required(login_url='/auth/login/')
 def live_tracker_view(request):
     """
-    Renders the live frontend tracking template. Passes down context variables 
-    such as the standard CSRF security token automatically.
+    Renders the live frontend tracking template.
     """
     # 1. Fetch all seeded exercises from PostgreSQL
     exercises = Exercise.objects.all()
@@ -141,7 +153,7 @@ def live_tracker_view(request):
 
     return render(request, 'workouts/tracker.html', context)
 
-@login_required(login_url='/api/auth/login/')
+@login_required(login_url='/auth/login/')
 def workout_analysis_page_view(request, session_id):
     """
     Renders the frontend page displaying the Gemini Markdown analysis.
@@ -158,51 +170,65 @@ def workout_analysis_page_view(request, session_id):
     
     return render(request, 'workouts/analysis_detail.html', context)
 
-@login_required(login_url='/api/auth/login/')
+@login_required(login_url='/auth/login/')
 def workout_dashboard(request):
-    """Lists all historical sessions and provides a retroactive upload point."""
-    # Fetch all sessions for this user, ordered by most recent
-    sessions = WorkoutSession.objects.filter(user=request.user).order_by('-timestamp')
-    
-    return render(request, 'workouts/dashboard.html', {
-        'sessions': sessions
-    })
-
-@login_required(login_url='/api/auth/login/')
-def get_or_create_chat_thread(request):
     """
-    Provides a lightweight initialization hook for the frontend dashboard.
-    Fetches the user's active chat session thread or instances a new one
-    so the UI can bind onto a unique ID during the WebSocket handshake.
+    Renders the structural template skeleton for the dashboard.
+    The data inside this page will be loaded asynchronously by JavaScript.
     """
-    thread, created = ChatThread.objects.get_or_create(user=request.user)
-    return JsonResponse({
-        'status': 'success',
-        'thread_id': thread.id
-    })
+    context = {
+        'exercises': Exercise.objects.all()
+    }
+    return render(request, 'workouts/dashboard.html', context)
 
-@login_required(login_url='/api/auth/login/')
+@login_required(login_url='/auth/login/')
 def ai_chat_coach_view(request):
     """Renders the dedicated real-time chat interface layout page."""
     return render(request, 'workouts/chat.html')
 
-@login_required(login_url='/api/auth/login/')
-def get_chat_history_api(request, thread_id):
-    """Returns all historical messages for a specific thread to restore UI state on refresh."""
-    try:
-        thread = ChatThread.objects.get(id=thread_id, user=request.user)
-        messages = ChatMessage.objects.filter(thread=thread).order_by('timestamp')
-        
-        serialized_messages = [
-            {
-                'role': msg.role,
-                'content': msg.content
-            } for msg in messages
-        ]
-        
-        return JsonResponse({
+# ==========================================
+# 🔐 CONVERTED UTILITY API ENDPOINTS (DRF Protected)
+# ==========================================
+
+class GetOrCreateChatThreadAPIView(APIView):
+    """
+    Production-safe endpoint using JWT authentication to fetch or initialize 
+    the active chat session channel thread.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        thread, created = ChatThread.objects.get_or_create(user=request.user)
+        return Response({
             'status': 'success',
-            'messages': serialized_messages
-        })
-    except ChatThread.DoesNotExist:
-        return JsonResponse({'status': 'error', 'message': 'Thread not found'}, status=404)
+            'thread_id': thread.id
+        }, status=status.HTTP_200_OK)
+
+
+class GetChatHistoryAPIView(APIView):
+    """
+    Secures historical message extraction behind production JWT bearer token checks
+    to prevent unauthorized cross-user profile reading.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, thread_id):
+        try:
+            thread = ChatThread.objects.get(id=thread_id, user=request.user)
+            messages = ChatMessage.objects.filter(thread=thread).order_by('timestamp')
+            
+            serialized_messages = [
+                {
+                    'role': msg.role,
+                    'content': msg.content
+                } for msg in messages
+            ]
+            
+            return Response({
+                'status': 'success',
+                'messages': serialized_messages
+            }, status=status.HTTP_200_OK)
+        except ChatThread.DoesNotExist:
+            return Response({'status': 'error', 'message': 'Thread access denied.'}, status=status.HTTP_404_NOT_FOUND)

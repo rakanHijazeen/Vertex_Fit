@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Third-Party Libraries
     'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'authentication',
     'workouts',
@@ -168,11 +170,19 @@ REST_FRAMEWORK = {
 
 # SimpleJWT configuration matrix
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME': timedelta(days=1),  # Kept flexible for development convenience
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
-    'ROTATE_REFRESH_TOKENS': True,
-    'BLACKLIST_AFTER_ROTATION': False,
-    'AUTH_HEADER_TYPES': ('Bearer',),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),   # Short lifespan for security
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Long lifespan for user persistence
+    'ROTATE_REFRESH_TOKENS': True,                    # Issue a fresh refresh token when used
+    'BLACKLIST_AFTER_ROTATION': True,                 # Prevent reuse of older refresh tokens
+    'UPDATE_LAST_LOGIN': True,
+
+    # 🍪 Production Cookie Infrastructure 
+    'AUTH_COOKIE': 'refresh_token',                   # Name of the cookie dropped in the browser
+    'AUTH_COOKIE_DOMAIN': None,                       # Set to '.yourdomain.com' in actual prod
+    'AUTH_COOKIE_SECURE': False,                      # Enforces HTTPS ONLY transmission (False for local dev)
+    'AUTH_COOKIE_HTTP_ONLY': True,                    # Blocks JS from reading the token (Stops XSS)
+    'AUTH_COOKIE_PATH': '/api/auth/',                 # Cookie is ONLY sent to the auth endpoints
+    'AUTH_COOKIE_SAMESITE': 'Lax',                    # Mitigates CSRF attack surfaces
 }
 
 # AWS S3 Settings Configuration

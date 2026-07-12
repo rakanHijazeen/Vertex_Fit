@@ -120,12 +120,90 @@
         const statusDot = document.getElementById('connectionStatusDot');
         const statusText = document.getElementById('connectionStatusText');
 
+        // ==========================================
+        // 🔐 PRODUCTION TOKEN HANDSHAKE ENGINE
+        // ==========================================
+        let memoryAccessToken = null;
+
+        function isTokenExpired(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const payload = JSON.parse(jsonPayload);
+                return payload.exp * 1000 < (Date.now() + 10000);
+            } catch (e) {
+                return true;
+            }
+        }
+
+        async function getValidToken() {
+            let token = memoryAccessToken || sessionStorage.getItem('accessToken');
+            if (token && !isTokenExpired(token)) {
+                memoryAccessToken = token;
+                return token;
+            }
+
+            try {
+                const refreshResponse = await fetch("/api/auth/refresh/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: 'include'
+                });
+
+                if (refreshResponse.ok) {
+                    const data = await refreshResponse.json();
+                    memoryAccessToken = data.access;
+                    sessionStorage.setItem('accessToken', data.access);
+                    return data.access;
+                } else {
+                    throw new Error("Refresh token expired");
+                }
+            } catch (err) {
+                console.warn("Silent refresh failed, redirecting to login...");
+                sessionStorage.removeItem('accessToken');
+                window.location.href = "/auth/login/";
+                return null;
+            }
+        }
+
+        // ==========================================
+        // 🚪 SIGN OUT HANDLER INTERCEPTOR
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", () => {
+            const logoutLinks = document.querySelectorAll('a[href="/api/auth/logout/"]');
+            logoutLinks.forEach(link => {
+                link.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await fetch("/api/auth/logout/", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: 'include'
+                        });
+                    } catch (err) {
+                        console.error("Logout request failed:", err);
+                    }
+                    sessionStorage.removeItem('accessToken');
+                    window.location.href = "/auth/login/";
+                });
+            });
+        });
+
         // Automatically fire and synchronize conversation state targets upon initialization
         document.addEventListener("DOMContentLoaded", async () => {
             await initializeChatThread();
         });
 
         async function initializeChatThread() {
+            // 🎯 NEW: Invalidate stale thread ID if this is a fresh login
+            if (sessionStorage.getItem('fresh_login') === 'true') {
+                console.log("🆕 New login detected. Clearing stale thread context...");
+                localStorage.removeItem('vertex_chat_thread_id');
+                sessionStorage.removeItem('fresh_login'); // Clear the flag
+            }
             // 1. Check if the thread_id already exists in localStorage
             activeThreadId = localStorage.getItem('vertex_chat_thread_id');
 
@@ -140,12 +218,19 @@
             } else {
                 console.log("🌐 No local thread found. Provisioning context from server...");
                 // 2. If it's empty, fetch it from the backend server
+                const token = await getValidToken();
+                if (!token) return;
+
                 try {
-                    const response = await fetch("{% url 'chat_thread_init' %}");
+                    const response = await fetch("{% url 'chat_thread_init' %}", {
+                        method: "GET",
+                        headers: { "Authorization": `Bearer ${token}` }
+                    });
                     const data = await response.json();
 
                     if (data.status === 'success') {
                         activeThreadId = data.thread_id;
+
 
                         // Save the thread_id locally so it survives tab switches/refreshes
                         localStorage.setItem('vertex_chat_thread_id', activeThreadId);
@@ -161,9 +246,15 @@
         }
 
         async function loadSavedChatHistory(threadId) {
+            const token = await getValidToken();
+            if (!token) return;
+
             try {
                 // Fetch the historical messages from the backend API endpoint
-                const response = await fetch(`/api/workouts/chat/history/${threadId}/`);
+                const response = await fetch(`/api/workouts/chat/history/${threadId}/`, {
+                    method: "GET",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
                 // Safety guard: If Django returns a 404 or 500, catch it here before parsing JSON
                 if (!response.ok) {
                     throw new Error(`Server responded with status ${response.status}`);

@@ -20,9 +20,57 @@
   let nextAudioStartTime = 0;
   let mpPose = null;
   let mpCamera = null;
-  // Dynamic rep counter instance (initialized when starting the session)
   let repCounter = null;
   let isSetStarted = false;
+
+  // ==========================================
+  // 🔐 PRODUCTION TOKEN HANDSHAKE ENGINE
+  // ==========================================
+  let memoryAccessToken = null;
+
+  function isTokenExpired(token) {
+    try {
+      const base64Url = token.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const payload = JSON.parse(jsonPayload);
+      return payload.exp * 1000 < (Date.now() + 10000);
+    } catch (e) {
+      return true;
+    }
+  }
+
+  async function getValidToken() {
+    let token = memoryAccessToken || sessionStorage.getItem('accessToken');
+    if (token && !isTokenExpired(token)) {
+      memoryAccessToken = token;
+      return token;
+    }
+
+    try {
+      const refreshResponse = await fetch("/api/auth/refresh/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: 'include'
+      });
+
+      if (refreshResponse.ok) {
+        const data = await refreshResponse.json();
+        memoryAccessToken = data.access;
+        sessionStorage.setItem('accessToken', data.access);
+        return data.access;
+      } else {
+        throw new Error("Refresh token expired");
+      }
+    } catch (err) {
+      console.warn("Silent refresh failed, redirecting to login...");
+      sessionStorage.removeItem('accessToken');
+      window.location.href = "/auth/login/";
+      return null;
+    }
+  }
 
   // Common MediaPipe Pose connections (pairs of landmark indices) used to draw skeletal tracer lines
   const POSE_CONNECTIONS = [

@@ -1,0 +1,119 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-white">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vertex Fit AI - Registration</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+
+<body class="flex items-center justify-center min-h-full bg-slate-950 font-sans antialiased text-slate-200 px-4">
+    <div
+        class="w-full max-w-md bg-slate-900/40 border border-slate-900 p-8 rounded-2xl backdrop-blur-sm shadow-2xl space-y-6">
+
+        <div class="flex flex-col items-center space-y-3 text-center">
+            <div
+                class="h-10 w-10 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] text-xl">
+                V
+            </div>
+            <h2
+                class="text-2xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+                VERTEX <span class="text-emerald-400">FIT</span>
+            </h2>
+            <p class="text-xs text-slate-400">Initialize your biometric parameters to drive your AI fitness engine</p>
+        </div>
+
+        <div id="error-box"
+            class="hidden p-3.5 text-xs rounded-xl border bg-rose-500/10 text-rose-400 border-rose-500/20 transition-all duration-300">
+        </div>
+
+        <form id="signup-form" class="space-y-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Email
+                    Address</label>
+                <input type="email" id="email" required autocomplete="email"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+            </div>
+
+            <div>
+                <label
+                    class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+                <input type="password" id="password" required autocomplete="new-password" minlength="8"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                <p class="text-slate-500 text-[10px] uppercase tracking-widest mt-1">Minimum length requirement is 8
+                    characters</p>
+            </div>
+
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Biological
+                    Gender</label>
+                <select id="gender"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+
+            <button type="submit"
+                class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-emerald-500/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200 cursor-pointer text-sm mt-2">
+                Create Account
+            </button>
+        </form>
+
+        <p class="text-xs text-slate-400 text-center pt-2">
+            Already registered?
+            <a href="{% url 'authentication:login' %}" class="text-emerald-400 font-semibold hover:underline ml-1">Sign
+                In Here➔</a>
+        </p>
+    </div>
+
+    <script>
+        document.getElementById('signup-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorBox = document.getElementById('error-box');
+            errorBox.classList.add('hidden');
+
+            const payload = {
+                email: document.getElementById('email').value,
+                password: document.getElementById('password').value,
+                profile: {
+                    gender: document.getElementById('gender').value
+                }
+            };
+
+            try {
+                const response = await fetch("{% url 'auth_register' %}", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    // ✅ In-memory storage and sessionStorage for production access token 
+                    // (The refresh token is dropped silently and securely into your cookies by the browser)
+                    window.memoryAccessToken = data.access;
+                    sessionStorage.setItem('accessToken', data.access);
+
+                    // ✅ Redirect safely using your absolute route path
+                    window.location.href = "/api/workouts/tracker/";
+                } else {
+                    let messages = [];
+                    for (const [key, value] of Object.entries(data)) {
+                        messages.push(`${key}: ${value}`);
+                    }
+                    errorBox.innerText = messages.join(' | ');
+                    errorBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorBox.innerText = "Registration connection dropped. Verify server availability status.";
+                errorBox.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+
+</html>

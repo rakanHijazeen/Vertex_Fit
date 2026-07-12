@@ -175,6 +175,10 @@
                         class="text-xs font-semibold bg-slate-950 px-3 py-1.5 border border-slate-800 text-slate-400 rounded-full">
                         Total Sets: {{ sessions.count }}
                     </span>
+                    <span id="totalSetsCount"
+                        class="text-xs font-semibold bg-slate-950 px-3 py-1.5 border border-slate-800 text-slate-400 rounded-full">
+                        Total Sets: --
+                    </span>
                 </div>
 
                 <div class="flex-1 overflow-x-auto">
@@ -190,45 +194,6 @@
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-900/60 text-sm">
-                            {% for session in sessions %}
-                            <tr class="hover:bg-slate-900/20 group transition-colors">
-                                <td class="py-4 pl-2 font-medium text-slate-200">
-                                    {{ session.timestamp|date:"Y-m-d H:i" }}
-                                </td>
-                                <td class="py-4">
-                                    <span
-                                        class="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-md text-xs font-mono text-slate-300">
-                                        {{ session.exercise.name }} </span>
-                                </td>
-                                <td class="py-4 font-bold text-white">
-                                    {{ session.rep_count }} <span class="text-xs text-slate-400 font-normal">reps</span>
-                                </td>
-                                <td class="py-4">
-                                    <span
-                                        class="px-2.5 py-1 inline-flex text-xxs font-bold uppercase tracking-wider rounded-md 
-                                        {% if session.status == 'completed' %} bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 
-                                        {% elif session.status == 'failed' %} bg-rose-500/10 text-rose-400 border border-rose-500/20 
-                                        {% else %} bg-amber-500/10 text-amber-400 border border-amber-500/20 {% endif %}">
-                                        {{ session.get_status_display }}
-                                    </span>
-                                </td>
-                                <td class="py-4 pr-2 text-right">
-                                    <a href="{% url 'workout_analysis_page' session.id %}"
-                                        class="inline-flex items-center text-xs font-bold text-emerald-400 hover:text-white bg-slate-950 hover:bg-emerald-500 border border-slate-800 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition-all shadow-sm">
-                                        View Report➔
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="5" class="py-16 text-center text-sm text-slate-500">
-                                    <div class="text-3xl mb-2 opacity-50">🏋️‍♂️</div>
-                                    <p class="font-semibold text-slate-400">No workout sessions logged yet</p>
-                                    <p class="text-xs text-slate-500 mt-1">Complete a live tracking workout or use the
-                                        file upload form above.</p>
-                                </td>
-                            </tr>
-                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -244,26 +209,175 @@
         const statusText = document.getElementById('uploadStatus');
         const uploadPromptText = document.getElementById('uploadPromptText');
 
-        // This handles your language state tracking globally on initialization
+        // ==========================================
+        // 🔐 PRODUCTION TOKEN HANDSHAKE ENGINE
+        // ==========================================
+        function isTokenExpired(token) {
+            try {
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const payload = JSON.parse(jsonPayload);
+                // Return true if expired or within a 10-second safety buffer
+                return payload.exp * 1000 < (Date.now() + 10000);
+            } catch (e) {
+                return true;
+            }
+        }
+
+        async function getValidToken() {
+            // Check memory, then check sessionStorage, and verify it hasn't expired
+            let token = window.memoryAccessToken || sessionStorage.getItem('accessToken');
+            if (token && !isTokenExpired(token)) {
+                window.memoryAccessToken = token;
+                return token;
+            }
+
+            try {
+                // Silently call the HttpOnly refresh cookie pipeline to issue a new access token
+                const refreshResponse = await fetch("/api/auth/refresh/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    credentials: 'include'
+                });
+
+                if (refreshResponse.ok) {
+                    const data = await refreshResponse.json();
+                    window.memoryAccessToken = data.access;
+                    sessionStorage.setItem('accessToken', data.access);
+                    return data.access;
+                } else {
+                    throw new Error("Refresh token expired");
+                }
+            } catch (err) {
+                console.warn("Silent refresh failed, redirecting to login...");
+                sessionStorage.removeItem('accessToken');
+                window.location.href = "/auth/login/";
+                return null;
+            }
+        }
+
+        // ==========================================
+        // 🚪 SIGN OUT HANDLER INTERCEPTOR
+        // ==========================================
+        document.addEventListener("DOMContentLoaded", () => {
+            const logoutLinks = document.querySelectorAll('a[href="/api/auth/logout/"]');
+            logoutLinks.forEach(link => {
+                link.addEventListener('click', async (e) => {
+                    e.preventDefault();
+                    try {
+                        await fetch("/api/auth/logout/", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            credentials: 'include'
+                        });
+                    } catch (err) {
+                        console.error("Logout request failed:", err);
+                    }
+                    sessionStorage.removeItem('accessToken');
+                    window.location.href = "/auth/login/";
+                });
+            });
+        });
+
+        // ==========================================
+        // 📊 DATA INJECTION ENGINE (ASYNC POPULATE)
+        // ==========================================
+        async function initializeDashboardData() {
+            const token = await getValidToken();
+            if (!token) return;
+
+            try {
+                // Fetch user data via protected API endpoints
+                const response = await fetch("/api/workouts/api/sessions/", {
+                    method: "GET",
+                    headers: { "Authorization": `Bearer ${token}` }
+                });
+
+                if (response.ok) {
+                    const sessions = await response.json();
+                    renderSessionsTable(sessions);
+                } else if (response.status === 401) {
+                    // If the token is rejected by the backend, clear memory and force a clean login
+                    window.location.href = "/auth/login/";
+                }
+            } catch (err) {
+                console.error("Failed to populate dashboard metrics:", err);
+            }
+        }
+
+        function renderSessionsTable(sessions) {
+            const tbody = document.querySelector("table tbody");
+            const countBadge = document.getElementById("totalSetsCount");
+
+            if (countBadge) countBadge.textContent = `Total Sets: ${sessions.length}`;
+            if (!tbody) return;
+
+            if (!sessions || sessions.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="py-16 text-center text-sm text-slate-500">
+                            <div class="text-3xl mb-2 opacity-50">🏋️‍♂️</div>
+                            <p class="font-semibold text-slate-400">No workout sessions logged yet</p>
+                            <p class="text-xs text-slate-500 mt-1">Complete a live tracking workout or use the file upload form above.</p>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            tbody.innerHTML = sessions.map(session => {
+                let statusClasses = "bg-amber-500/10 text-amber-400 border border-amber-500/20";
+                if (session.status === 'completed') statusClasses = "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
+                if (session.status === 'failed') statusClasses = "bg-rose-500/10 text-rose-400 border border-rose-500/20";
+
+                const formattedDate = new Date(session.timestamp).toLocaleString([], { hour: '2-digit', minute: '2-digit' });
+
+                return `
+                    <tr class="hover:bg-slate-900/20 group transition-colors">
+                        <td class="py-4 pl-2 font-medium text-slate-200">${session.timestamp.split('T')[0]} ${formattedDate}</td>
+                        <td class="py-4">
+                            <span class="bg-slate-950 border border-slate-800 px-2.5 py-1 rounded-md text-xs font-mono text-slate-300">
+                                ${session.exercise}
+                            </span>
+                        </td>
+                        <td class="py-4 font-bold text-white">${session.rep_count} <span class="text-xs text-slate-400 font-normal">reps</span></td>
+                        <td class="py-4">
+                            <span class="px-2.5 py-1 inline-flex text-xxs font-bold uppercase tracking-wider rounded-md ${statusClasses}">
+                                ${session.status}
+                            </span>
+                        </td>
+                        <td class="py-4 pr-2 text-right">
+                            <a href="/api/workouts/session/${session.session_id}/analysis/"
+                                class="inline-flex items-center text-xs font-bold text-emerald-400 hover:text-white bg-slate-950 hover:bg-emerald-500 border border-slate-800 hover:border-emerald-500 px-3 py-1.5 rounded-lg transition-all shadow-sm">
+                                View Report➔
+                            </a>
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // Initialize Page Runtime Configuration
         document.addEventListener("DOMContentLoaded", () => {
             const langSelector = document.getElementById("globalLanguageSelector");
-
-            // 1. Load saved language preference on page initialize
             const savedLang = localStorage.getItem("vertex_fit_lang") || "English";
             if (langSelector) langSelector.value = savedLang;
 
-            // 2. Save preference immediately whenever the user changes it
             if (langSelector) {
                 langSelector.addEventListener("change", (e) => {
                     localStorage.setItem("vertex_fit_lang", e.target.value);
                 });
             }
+
+            // Spin up the async loading sequence
+            initializeDashboardData();
         });
 
         // Toggle file dialogue click handler
         dropzone.addEventListener('click', () => fileInput.click());
 
-        // Visual layout state modifier loops for drop handling interaction states
+        // Visual layout state modifiers for drag-and-drop actions
         ['dragenter', 'dragover'].forEach(eventName => {
             dropzone.addEventListener(eventName, (e) => {
                 e.preventDefault();
@@ -295,6 +409,9 @@
             uploadPromptText.innerHTML = `Selected: <span class="text-emerald-400 font-bold">${fileName}</span>`;
         }
 
+        // ==========================================
+        // 💾 SECURE MULTIPART UPLOAD HANDLER
+        // ==========================================
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!fileInput.files.length) {
@@ -302,29 +419,27 @@
                 return;
             }
 
-            statusText.classList.remove('hidden', 'bg-rose-500/10', 'text-rose-400', 'border-rose-500/20', 'bg-emerald-500/10', 'text-emerald-400', 'border-emerald-500/20');
+            const token = await getValidToken();
+            if (!token) return;
+
             statusText.className = "p-3 text-xs rounded-xl border bg-slate-900/80 text-slate-300 border-slate-800 block";
-            statusText.innerHTML = `<span class="inline-block animate-pulse mr-2 text-emerald-400"></span> Uploading your video...`;
+            statusText.innerHTML = `<span class="inline-block animate-pulse mr-2 text-emerald-400">⏳</span> Uploading your video...`;
 
             const formData = new FormData();
             formData.append("video", fileInput.files[0]);
-            // Match exactly request.data.get('exercise_id') payload configuration name
             formData.append("exercise_id", document.getElementById('retroExerciseSelector').value);
-
-            // Explicitly send 0 reps for standalone pre-recorded uploads
             formData.append('rep_count', 0);
 
-            // Dynamically attach the saved localStorage language selection right to the payload
             const currentLang = localStorage.getItem("vertex_fit_lang") || "English";
             formData.append('language', currentLang);
 
             try {
-                const response = await fetch("/api/workouts/upload/", {
+                const response = await fetch("/workouts/upload/", {
                     method: "POST",
                     body: formData,
-                    // Pass current user session cookies for authentication verification
                     headers: {
-                        'X-CSRFToken': '{{ csrf_token }}'
+                        // 🔐 Authenticate payload explicitly via Bearer injection
+                        "Authorization": `Bearer ${token}`
                     }
                 });
                 const data = await response.json();
@@ -332,6 +447,9 @@
                 if (response.ok) {
                     statusText.className = "p-3 text-xs rounded-xl border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 block";
                     statusText.innerHTML = `✅ Upload complete! <a href="/api/workouts/session/${data.session_id}/analysis/" class="underline font-bold hover:text-white transition-colors">View your AI Form Analysis</a>`;
+
+                    // Refresh data list after processing
+                    initializeDashboardData();
                 } else {
                     statusText.className = "p-3 text-xs rounded-xl border bg-rose-500/10 text-rose-400 border-rose-500/20 block";
                     statusText.textContent = `❌ Couldn't analyze video: ${data.error || "Upload initialization failed."}`;
