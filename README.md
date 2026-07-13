@@ -10,8 +10,9 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 ### 1. Core Backend and User Platform
 
+- **2-Phase Registration Pipeline**: Split the signup workflow into a multi-step onboarding system. Phase 1 validates core credentials (email, password, and indexed unique username), while Phase 2 captures physical and biometric profile metrics using interactive, Tailwind-styled components featuring silent client-side timezone detection.
+- **Unified Identifier Authentication**: Upgraded the login flow to support both email addresses and custom usernames interchangeably from a single generic input field, handling validation case-insensitively.
 - Built a Django-based backend with modular app structure for authentication and workouts.
-- Implemented a custom user model using email-based authentication.
 - Added profile management for body metrics, fitness goals, and premium-related fields.
 - Created workout session persistence for exercise tracking and AI feedback history.
 - Expanded the profile schema to support demographic tracking fields including tracking **Gender** to drive highly personalized baseline physiological coaching recommendations.
@@ -90,13 +91,15 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 ### Authentication
 
-- Secure, email-based authentication with hybrid Session/JWT persistence.
+- Secure, unified authentication backend allowing users to sign in with either an exact case-insensitive username or email string.
 
-- Dynamic cookie security management for multi-environment (HTTP/HTTPS) compatibility.
+- 2-Phase atomic onboarding pipeline separating credential tracking from deep profile physical data collection.
 
-- Atomic registration flow with immediate session establishment.
+- Custom JWT token serializers that dynamically clear and remap input payloads matching SimpleJWT requirements.
 
-- Authenticated profile management tracking biometrics, goals, and gender definitions.
+- Decoupled runtime authentication backends declared within views to bypass premature application registry loading traps.
+
+- Secure, hybrid Session/JWT persistence with dynamic cookie security management.
 
 ### Workouts
 
@@ -119,6 +122,8 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 ### Completed
 
 - Core Django project scaffolding
+- 2-Phase onboarding pipeline (Credential split from biometric/physical profiles)
+- Single-input unified login identifier tracking (Email or Username)
 - Workout session and exercise models
 - S3 media upload pipeline
 - VLM-based workout analysis pipeline
