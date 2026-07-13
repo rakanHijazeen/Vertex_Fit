@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Profile
 
 User = get_user_model()
@@ -35,3 +36,23 @@ class ProfileUpdateSerializer(serializers.ModelSerializer):
             'target_weight': {'required': True},
             'fitness_goal': {'required': True},
         }
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """Dynamically remaps the username requirement to handle email or username text inputs."""
+    login_identifier = serializers.CharField(write_only=True)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Dynamically clear whatever base field SimpleJWT is expecting (username or email)
+        self.fields.pop(self.username_field, None)
+        self.fields.pop('username', None)
+
+    def validate(self, attrs):
+        # Map the frontend string directly to what the auth backend expects
+        identifier = attrs.get('login_identifier')
+        
+        # SimpleJWT looks up credentials using self.username_field key
+        attrs[self.username_field] = identifier
+        attrs['username'] = identifier
+        
+        return super().validate(attrs)

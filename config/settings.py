@@ -161,6 +161,12 @@ CORS_ALLOWED_ORIGINS = [
 CORS_ALLOW_CREDENTIALS = True
 
 AUTH_USER_MODEL = 'authentication.User'
+
+# Custom Authentication Backends
+AUTHENTICATION_BACKENDS = [
+    'authentication.views.EmailOrUsernameModelBackend',  # Pointing to views prevents the early model-load crash
+    'django.contrib.auth.backends.ModelBackend',
+]
 # Django REST Framework global settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (

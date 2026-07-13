@@ -31,9 +31,9 @@
 
         <form id="login-form" class="space-y-4">
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Email
-                    Address</label>
-                <input type="email" id="email" required autocomplete="email"
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username or
+                    Email Address</label>
+                <input type="text" id="login_identifier" required autocomplete="username"
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
             </div>
 
@@ -58,38 +58,40 @@
     </div>
 
     <script>
-        // Clean production runtime variable inside your global script
         let memoryAccessToken = null;
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
+            const errorBox = document.getElementById('error-box');
+            errorBox.classList.add('hidden');
 
             const payload = {
-                email: document.getElementById('email').value,
+                login_identifier: document.getElementById('login_identifier').value.trim(),
                 password: document.getElementById('password').value
             };
 
-            const response = await fetch("/api/auth/login/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload)
-            });
+            try {
+                const response = await fetch("/api/auth/login/", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
 
-            const data = await response.json();
+                const data = await response.json();
 
-            if (response.ok) {
-                // 1. Keep the short-lived access token strictly in local memory variable and sessionStorage
-                memoryAccessToken = data.access;
-                sessionStorage.setItem('accessToken', data.access);
-
-                // Signal that a new user just logged in. 
-                // This will force chat.html to clear the old thread_id from localStorage.
-                sessionStorage.setItem('fresh_login', 'true');
-
-                // Note: The long-lived Refresh Token is now automatically handled 
-                // by the browser's secure HttpOnly cookie! JS doesn't see it.
-
-                window.location.href = "/api/workouts/dashboard/";
+                if (response.ok) {
+                    memoryAccessToken = data.access;
+                    sessionStorage.setItem('accessToken', data.access);
+                    sessionStorage.setItem('fresh_login', 'true');
+                    window.location.href = "/api/workouts/dashboard/";
+                } else {
+                    // Render any authentication validation errors returned by SimpleJWT
+                    errorBox.innerText = data.detail || "Invalid credentials. Please verify your identifier and password.";
+                    errorBox.classList.remove('hidden');
+                }
+            } catch (err) {
+                errorBox.innerText = "System authentication link down. Try again shortly.";
+                errorBox.classList.remove('hidden');
             }
         });
     </script>

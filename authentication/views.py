@@ -8,9 +8,11 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .serializers import Phase1RegistrationSerializer, ProfileUpdateSerializer
-from django.contrib.auth import login, logout, get_user_model
+from .serializers import Phase1RegistrationSerializer, ProfileUpdateSerializer, CustomTokenObtainPairSerializer
+from django.contrib.auth import login, logout, get_user_model, authenticate
 from .models import Profile
+from django.contrib.auth.backends import ModelBackend
+from django.db.models import Q
 
 def login_page(request):
     """Renders the login page template for the web interface."""
@@ -102,31 +104,37 @@ class ProfileUpdateAPIView(APIView):
     
 class LoginAPIView(TokenObtainPairView):
     """
-    Production login endpoint that catches user credentials, returns an access token 
-    to client runtime memory, and locks down the refresh token inside an HttpOnly cookie.
+    Production login endpoint that catches user credentials (username or email), 
+    returns an access token to client runtime memory, and locks down the refresh 
+    token inside an HttpOnly cookie.
     """
+    serializer_class = CustomTokenObtainPairSerializer # Explicitly attach your new serializer
+
     def post(self, request, *args, **kwargs):
+        # 1. Let SimpleJWT and your CustomTokenObtainPairSerializer handle the heavy lifting
         response = super().post(request, *args, **kwargs)
         
         if response.status_code == 200:
             access_token = response.data.get('access')
             refresh_token = response.data.get('refresh')
             
-            # Log the user into Django session context for template page access and WebSocket channels
-            User = get_user_model()
-            try:
-                user = User.objects.get(email=request.data.get('email'))
+            # 2. Extract credentials from the request payload safely
+            login_identifier = request.data.get('login_identifier', '').strip()
+            password = request.data.get('password')
+
+            # 3. Use authenticate() so your backend finds the user via email OR username
+            user = authenticate(request, username=login_identifier, password=password)
+            
+            if user is not None:
+                # Log the user into Django session context for template page access and WebSocket channels
                 login(request, user)
-            except User.DoesNotExist:
-                pass
             
             # Strip the refresh token out of the JSON response payload to isolate it from XSS surfaces
             response.data = {
                 "message": "Authentication successful.",
                 "access": access_token
             }
-            
-            # Address dynamic secure cookie flag to prevent browser drop in local HTTP dev
+        
             secure_cookie = JWT_SETTINGS.get('AUTH_COOKIE_SECURE', False) and request.is_secure()
             
             # Encapsulate refresh token inside the secure browser cookie layer
@@ -210,3 +218,26 @@ class LogoutAPIView(APIView):
             return response
         except Exception:
             return Response({"error": "Invalid session profile configuration."}, status=status.HTTP_400_BAD_REQUEST)
+        
+class EmailOrUsernameModelBackend(ModelBackend):
+    """Authenticates users via either exact email or exact username string."""
+    def authenticate(self, request, username=None, password=None, **kwargs):
+        # 1. Fallback: if username is None, grab the value from kwargs (like email=...)
+        login_val = username or kwargs.get('email') or kwargs.get('username')
+        
+        if not login_val:
+            return None
+            
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+            
+        try:
+            # 2. Look up the identifier string against both columns case-insensitively
+            user = User.objects.get(Q(email__iexact=login_val) | Q(username__iexact=login_val))
+        except User.DoesNotExist:
+            return None
+
+        # 3. Check password validity
+        if user.check_password(password) and self.user_can_authenticate(user):
+            return user
+        return None
