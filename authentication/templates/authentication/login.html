@@ -37,11 +37,27 @@
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
             </div>
 
+            <!-- Fix 1: Added 'relative' to this wrapper div so the button positions correctly -->
             <div>
                 <label
                     class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
-                <input type="password" id="password" required autocomplete="current-password"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                <div class="relative flex items-center">
+                    <!-- Fix 2: Added 'pr-11' to prevent typed text from hiding behind the eye icon -->
+                    <input type="password" id="password" required autocomplete="current-password"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-11 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+
+                    <button type="button" onclick="togglePasswordVisibility('password', this)"
+                        class="absolute right-3.5 text-slate-500 hover:text-slate-300 focus:outline-none cursor-pointer flex items-center justify-center">
+                        <!-- Dynamic Eye Icon Wrapper -->
+                        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                            stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.036 12.322a1.012 1.012 0 0 1 0-.644m19.073 0a1.012 1.012 0 0 1 0 .644M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M5 12h.01M19 12h.01M12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7C2.46 7.943 6.251 5 12 5Z" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <button type="submit"
@@ -59,6 +75,27 @@
 
     <script>
         let memoryAccessToken = null;
+
+        // Fix 3: Added missing visibility toggle function with dynamic SVG shifting
+        function togglePasswordVisibility(inputId, btn) {
+            const passwordInput = document.getElementById(inputId);
+            const svgIcon = btn.querySelector('svg');
+
+            if (passwordInput.type === 'password') {
+                passwordInput.type = 'text';
+                // Switch to "Eye Slash" icon path
+                svgIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                `;
+            } else {
+                passwordInput.type = 'password';
+                // Switch back to regular "Eye" icon path
+                svgIcon.innerHTML = `
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.644m19.073 0a1.012 1.012 0 0 1 0 .644M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h.01M19 12h.01M12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7C2.46 7.943 6.251 5 12 5Z" />
+                `;
+            }
+        }
 
         document.getElementById('login-form').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -85,7 +122,6 @@
                     sessionStorage.setItem('fresh_login', 'true');
                     window.location.href = "/api/workouts/dashboard/";
                 } else {
-                    // Render any authentication validation errors returned by SimpleJWT
                     errorBox.innerText = data.detail || "Invalid credentials. Please verify your identifier and password.";
                     errorBox.classList.remove('hidden');
                 }
