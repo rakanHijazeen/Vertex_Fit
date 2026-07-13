@@ -1,36 +1,37 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
-from django.db import transaction
 from .models import Profile
 
 User = get_user_model()
 
-class ProfileSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Profile
-        fields = ['gender','date_of_birth', 'height', 'target_weight', 'fitness_goal']
-
-
-class RegistrationSerializer(serializers.ModelSerializer):
-    # Nest the profile fields inside the registration payload
-    profile = ProfileSerializer(required=False)
+class Phase1RegistrationSerializer(serializers.ModelSerializer):
+    """Handles Phase 1: Validating credentials and creating the User base account."""
     password = serializers.CharField(write_only=True, min_length=8)
 
     class Meta:
         model = User
-        fields = ['email', 'password', 'profile']
+        fields = ['email', 'username', 'password']  # Added username explicitly
 
     def create(self, validated_data):
-        profile_data = validated_data.pop('profile', {})
-        
-        # Enforce an atomic transaction context block
-        with transaction.atomic():
-            # Create the custom user instance using our manager
-            user = User.objects.create_user(
-                email=validated_data['email'],
-                password=validated_data['password']
-            )
-            # Build the corresponding profile linked via OneToOne
-            Profile.objects.create(user=user, **profile_data)
-            
-        return user
+        # Custom user manager handles normalization, hashing, and database indexing
+        return User.objects.create_user(
+            email=validated_data['email'],
+            username=validated_data['username'],
+            password=validated_data['password']
+        )
+
+
+class ProfileUpdateSerializer(serializers.ModelSerializer):
+    """Handles Phase 2: Updating user fitness metrics and onboarding status."""
+    class Meta:
+        model = Profile
+        fields = [
+            'gender', 'date_of_birth', 'height', 'target_weight', 
+            'fitness_goal', 'experience_level', 'timezone'
+        ]
+        extra_kwargs = {
+            'gender': {'required': True},
+            'height': {'required': True},
+            'target_weight': {'required': True},
+            'fitness_goal': {'required': True},
+        }

@@ -8,8 +8,9 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .serializers import RegistrationSerializer
+from .serializers import Phase1RegistrationSerializer, ProfileUpdateSerializer
 from django.contrib.auth import login, logout, get_user_model
+from .models import Profile
 
 def login_page(request):
     """Renders the login page template for the web interface."""
@@ -19,6 +20,9 @@ def signup_page(request):
     """Renders the signup page template for the web interface."""
     return render(request, 'authentication/signup.html')
 
+def onboarding_page(request):
+    return render(request, 'authentication/onboarding.html')
+
 # Safely extract SimpleJWT settings from settings.py dynamically to bypass static type-checking issues
 JWT_SETTINGS = getattr(settings, 'SIMPLE_JWT', {})
 
@@ -26,16 +30,22 @@ JWT_SETTINGS = getattr(settings, 'SIMPLE_JWT', {})
 @method_decorator(csrf_exempt, name='dispatch')
 class RegistrationAPIView(APIView):
     """
-    Handles secure atomic user registration and immediate session creation 
-    by injecting HttpOnly cookies directly into the browser client.
+    Phase 1 Registration:
+    Creates user account with email, username, and password, builds an incomplete profile,
+    and returns initial HttpOnly JWT/Session credentials.
     """
     permission_classes = [AllowAny]
 
     def post(self, request):
-        serializer = RegistrationSerializer(data=request.data)
+        serializer = Phase1RegistrationSerializer(data=request.data)
         if serializer.is_valid():
-            # Create user and profile within an atomic transaction context block
-            user = serializer.save()
+            with transaction.atomic():
+                # Create user base account
+                user = serializer.save()
+                
+                # Initialize an incomplete profile stub automatically
+                # Stays complete=False until phase 2 data is submitted
+                Profile.objects.create(user=user, onboarding_complete=False)
             
             # Log the user into standard Django session for template views / Channels
             login(request, user)
@@ -45,7 +55,8 @@ class RegistrationAPIView(APIView):
             access_token = str(refresh.access_token)
             
             response = Response({
-                "message": "User and biometric profile registered successfully.",
+                "message": "Phase 1 complete. Core identity created successfully.",
+                "requires_onboarding": True,
                 "access": access_token  # Return access token to be kept in frontend JS memory
             }, status=status.HTTP_201_CREATED)
             
@@ -66,7 +77,29 @@ class RegistrationAPIView(APIView):
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class ProfileUpdateAPIView(APIView):
+    """
+    Phase 2 Registration:
+    Collects health metrics, fitness targets, and local time tracking parameters 
+    to finalize onboarding access locks.
+    """
+    permission_classes = [IsAuthenticated]
 
+    def patch(self, request):
+        # Extract user's pre-built template profile row
+        profile = request.user.profile
+        
+        serializer = ProfileUpdateSerializer(profile, data=request.data, partial=True)
+        if serializer.is_valid():
+            # Commit incoming physical stats and mark onboarding as complete
+            serializer.save(onboarding_complete=True)
+            return Response({
+                "message": "Phase 2 complete. Biometric profile established successfully.",
+                "onboarding_complete": True
+            }, status=status.HTTP_200_OK)
+            
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
 class LoginAPIView(TokenObtainPairView):
     """
     Production login endpoint that catches user credentials, returns an access token 

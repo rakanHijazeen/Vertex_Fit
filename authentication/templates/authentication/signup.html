@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vertex Fit AI - Registration</title>
+    <title>Vertex Fit AI - Account Creation</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
 </head>
 
@@ -22,7 +22,7 @@
                 class="text-2xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
                 VERTEX <span class="text-emerald-400">FIT</span>
             </h2>
-            <p class="text-xs text-slate-400">Initialize your biometric parameters to drive your AI fitness engine</p>
+            <p class="text-xs text-slate-400">Phase 1: Secure your unique credentials</p>
         </div>
 
         <div id="error-box"
@@ -31,34 +31,66 @@
 
         <form id="signup-form" class="space-y-4">
             <div>
+                <label
+                    class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
+                <input type="text" id="username" required autocomplete="username"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+            </div>
+
+            <div>
                 <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Email
                     Address</label>
                 <input type="email" id="email" required autocomplete="email"
                     class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
             </div>
 
+            <!-- Password Field -->
             <div>
                 <label
                     class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
-                <input type="password" id="password" required autocomplete="new-password" minlength="8"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-                <p class="text-slate-500 text-[10px] uppercase tracking-widest mt-1">Minimum length requirement is 8
-                    characters</p>
+                <div class="relative flex items-center">
+                    <input type="password" id="password" required autocomplete="new-password" minlength="8"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                    <button type="button" onclick="togglePasswordVisibility('password', this)"
+                        class="absolute right-3 text-slate-500 hover:text-slate-300 focus:outline-none cursor-pointer">
+                        <!-- Eye Icon SVG -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.036 12.322a1.012 1.012 0 0 1 0-.644m19.073 0a1.012 1.012 0 0 1 0 .644M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M5 12h.01M19 12h.01M12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7C2.46 7.943 6.251 5 12 5Z" />
+                        </svg>
+                    </button>
+                </div>
+                <p class="text-slate-500 text-[10px] uppercase tracking-widest mt-1">Minimum requirement is 8 characters
+                </p>
             </div>
 
+            <!-- Confirm Password Field -->
             <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Biological
-                    Gender</label>
-                <select id="gender"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
-                    <option value="Male">Male</option>
-                    <option value="Female">Female</option>
-                </select>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Confirm
+                    Password</label>
+                <div class="relative flex items-center">
+                    <input type="password" id="password_confirm" required autocomplete="new-password" minlength="8"
+                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-10 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                    <button type="button" onclick="togglePasswordVisibility('password_confirm', this)"
+                        class="absolute right-3 text-slate-500 hover:text-slate-300 focus:outline-none cursor-pointer">
+                        <!-- Eye Icon SVG -->
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
+                            stroke="currentColor" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M2.036 12.322a1.012 1.012 0 0 1 0-.644m19.073 0a1.012 1.012 0 0 1 0 .644M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                            <path stroke-linecap="round" stroke-linejoin="round"
+                                d="M5 12h.01M19 12h.01M12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7C2.46 7.943 6.251 5 12 5Z" />
+                        </svg>
+                    </button>
+                </div>
             </div>
 
             <button type="submit"
                 class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-emerald-500/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200 cursor-pointer text-sm mt-2">
-                Create Account
+                Continue to Profile Setup ➔
             </button>
         </form>
 
@@ -70,21 +102,51 @@
     </div>
 
     <script>
+        // Inline visibility toggler script
+        function togglePasswordVisibility(fieldId, btn) {
+            const input = document.getElementById(fieldId);
+            if (input.type === 'password') {
+                input.type = 'text';
+                // Switch to "eye-slash" icon representation
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5 text-emerald-400">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+                    </svg>`;
+            } else {
+                input.type = 'password';
+                // Switch back to default "eye" icon
+                btn.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.644m19.073 0a1.012 1.012 0 0 1 0 .644M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h.01M19 12h.01M12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7C2.46 7.943 6.251 5 12 5Z" />
+                    </svg>`;
+            }
+        }
+
         document.getElementById('signup-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errorBox = document.getElementById('error-box');
             errorBox.classList.add('hidden');
 
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('password_confirm').value;
+
+            // Simple front-end check before knocking on the server's door
+            if (password !== passwordConfirm) {
+                errorBox.innerText = "Validation Error: Passwords do not match.";
+                errorBox.classList.remove('hidden');
+                return;
+            }
+
             const payload = {
-                email: document.getElementById('email').value,
-                password: document.getElementById('password').value,
-                profile: {
-                    gender: document.getElementById('gender').value
-                }
+                username: document.getElementById('username').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                password: password,
+                password_confirm: passwordConfirm // Pass this down so Phase1RegistrationSerializer can read it safely
             };
 
             try {
-                const response = await fetch("{% url 'auth_register' %}", {
+                const response = await fetch("/api/auth/register/phase-1/", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(payload)
@@ -93,13 +155,8 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    // ✅ In-memory storage and sessionStorage for production access token 
-                    // (The refresh token is dropped silently and securely into your cookies by the browser)
-                    window.memoryAccessToken = data.access;
                     sessionStorage.setItem('accessToken', data.access);
-
-                    // ✅ Redirect safely using your absolute route path
-                    window.location.href = "/api/workouts/tracker/";
+                    window.location.href = "/auth/onboarding/";
                 } else {
                     let messages = [];
                     for (const [key, value] of Object.entries(data)) {
@@ -109,7 +166,7 @@
                     errorBox.classList.remove('hidden');
                 }
             } catch (err) {
-                errorBox.innerText = "Registration connection dropped. Verify server availability status.";
+                errorBox.innerText = "Connection dropped. Verify system server status.";
                 errorBox.classList.remove('hidden');
             }
         });
