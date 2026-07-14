@@ -11,6 +11,8 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 ### 1. Core Backend and User Platform
 
 - **2-Phase Registration Pipeline**: Split the signup workflow into a multi-step onboarding system. Phase 1 validates core credentials (email, password, and indexed unique username), while Phase 2 captures physical and biometric profile metrics using interactive, Tailwind-styled components featuring silent client-side timezone detection.
+- **Secure Email Verification Architecture**: Implemented an automated transactional verification flow paired with Brevo SMTP API infrastructure. Upon Phase 1 registration, a cryptographically signed, timestamp-bound token (`TimestampSigner`) is generated and delivered via a responsive HTML email matching the platform's dark aesthetic.
+- **Global Layout & Real-Time Alerts**: Introduced a root-level master layout (`base.html`) powering core page styling globally. It includes a dynamic, responsive warning banner that intercepts unverified users across workspaces, continuously urging account confirmation until the validation view updates their database profile state.
 - **Unified Identifier Authentication**: Upgraded the login flow to support both email addresses and custom usernames interchangeably from a single generic input field, handling validation case-insensitively.
 - Built a Django-based backend with modular app structure for authentication and workouts.
 - Added profile management for body metrics, fitness goals, and premium-related fields.
@@ -101,6 +103,12 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 - Secure, hybrid Session/JWT persistence with dynamic cookie security management.
 
+- Automated `send_verification_email` triggering bound directly within Phase 1 signup transaction handlers.
+
+- Explicit `user.backend` pointer assignment prior to standard runtime logins to eliminate session initialization `ValueError` traps.
+
+- Dedicated namespace isolated template rendering (`authentication/emails/`) ensuring clean backend compilation lookups.
+
 ### Workouts
 
 - Exercise registry and workout session data model
@@ -133,6 +141,10 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Secure Auth Integration: Successfully transitioned to a unified authentication architecture, eliminating redirection loops, resolving CSRF/JWT conflicts, and implementing silent token refresh for persistent state across the platform.
 - **Persistent, Context-Aware Conversational AI Chat**: Implemented a stateful personal chat engine featuring full historical message loading mechanics. The background pipeline dynamically injects user biometric parameters alongside their last 5 historical workout session reports directly into the LLM context for hyper-personalized coaching feedback.
 - **Biometric Schema Expansion**: Added gender tracking attributes to the `Profile` authentication models, fully backed by active database schema migrations.
+- Core `base.html` template layout hierarchy refactoring.
+- Transactional registration email handling via Brevo integration.
+- Cryptographic token tokenization and verification routing logic (`is_email_verified`).
+- Session-based template routing optimization bypasses allowing public landing page layout access.
 
 ### In Progress / Active Focus
 
