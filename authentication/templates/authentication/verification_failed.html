@@ -1,0 +1,38 @@
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8 bg-gray-800 p-8 rounded-xl shadow-2xl border border-gray-700 text-center">
+        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-950 border border-red-500">
+            <!-- Link/X Icon -->
+            <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+        </div>
+        <div>
+            <h2 class="mt-6 text-3xl font-extrabold text-white">Verification Failed</h2>
+
+            {% if messages %}
+            {% for message in messages %}
+            <p class="mt-4 text-sm text-gray-400 bg-red-950/20 border border-red-900/50 rounded-lg p-3 text-red-300">
+                {{ message }}
+            </p>
+            {% endfor %}
+            {% else %}
+            <p class="mt-4 text-sm text-gray-400">
+                The verification link is invalid, corrupted, or has expired after 24 hours.
+            </p>
+            {% endif %}
+        </div>
+        <div class="mt-8 space-y-4">
+            <a href="{% url 'signup_page' %}"
+                class="w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none transition duration-150">
+                Register a new account
+            </a>
+            <a href="{% url 'login_page' %}"
+                class="block text-sm font-semibold text-gray-450 hover:text-gray-300 transition duration-150">
+                &larr; Back to Login
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

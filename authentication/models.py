@@ -65,6 +65,7 @@ class Profile(models.Model):
     experience_level = models.CharField(max_length=20, choices=[('BEGINNER', 'Beginner'), ('INTERMEDIATE', 'Intermediate'), ('ADVANCED', 'Advanced')], default='BEGINNER')
     timezone = models.CharField(max_length=50, default='Asia/Amman') # Default timezone set to Asia/Amman
     is_premium = models.BooleanField(default=False)
+    is_email_verified = models.BooleanField(default=False)
     paddle_subscription_id = models.CharField(max_length=100, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     onboarding_complete = models.BooleanField(default=False) # tracks if the user has completed the onboarding registration process

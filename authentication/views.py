@@ -1,5 +1,5 @@
 from rest_framework import settings, status
-from django.shortcuts import render
+from django.shortcuts import redirect, render
 from django.db import transaction
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -10,9 +10,13 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .serializers import Phase1RegistrationSerializer, ProfileUpdateSerializer, CustomTokenObtainPairSerializer
 from django.contrib.auth import login, logout, get_user_model, authenticate
-from .models import Profile
+from .models import Profile, User
+from django.contrib.auth.models import User
+import traceback
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
+from django.contrib import messages
+from .utils import signer, TOKEN_MAX_AGE, SignatureExpired, BadSignature, send_verification_email
 
 def login_page(request):
     """Renders the login page template for the web interface."""
@@ -43,12 +47,23 @@ class RegistrationAPIView(APIView):
         if serializer.is_valid():
             with transaction.atomic():
                 # Create user base account
-                user = serializer.save()
+                user: User = serializer.save()
                 
                 # Initialize an incomplete profile stub automatically
                 # Stays complete=False until phase 2 data is submitted
                 Profile.objects.create(user=user, onboarding_complete=False)
             
+            # Set the backend attribute to point to your custom backend class
+            user.backend = 'authentication.views.EmailOrUsernameModelBackend'
+
+            # 2. TRIGGER VERIFICATION EMAIL
+            # We wrap this in a try/except block so that even if the email API experiences a 
+            # temporary network hiccup, it won't crash the user's registration experience.
+            try:
+                send_verification_email(user, request)  # Send verification email to the user
+            except Exception as e:
+                print("--- EMAIL SENDING FAILED ---")
+                traceback.print_exc()
             # Log the user into standard Django session for template views / Channels
             login(request, user)
             
@@ -241,3 +256,33 @@ class EmailOrUsernameModelBackend(ModelBackend):
         if user.check_password(password) and self.user_can_authenticate(user):
             return user
         return None
+    
+def verify_email_view(request, token):
+    """
+    Validates the cryptographically signed token sent to the user's email.
+    If valid and active, completes email confirmation.
+    """
+    try:
+        # Decrypt token, verifying it hasn't been tampered with or expired
+        user_id = signer.unsign(token, max_age=TOKEN_MAX_AGE)
+        User = get_user_model()
+        user = User.objects.get(pk=user_id)
+        
+        # Query Profile directly using the user instance to satisfy Pylance
+        profile = Profile.objects.get(user=user)
+        
+        if not profile.is_email_verified:
+            profile.is_email_verified = True
+            profile.save()
+            messages.success(request, "Your email address has been verified! Log in to complete onboarding.")
+        else:
+            messages.info(request, "This account's email has already been verified.")
+            
+        return redirect('login_page') # Redirects straight to your login template view
+        
+    except SignatureExpired:
+        messages.error(request, "Your verification link has expired. Please sign up again to generate a new link.")
+        return render(request, 'registration/verification_failed.html')
+    except (BadSignature, User.DoesNotExist, Profile.DoesNotExist): # default catch-all for invalid or tampered tokens
+        messages.error(request, "The verification link is invalid or corrupted.")
+        return render(request, 'registration/verification_failed.html')

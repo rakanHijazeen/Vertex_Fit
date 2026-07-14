@@ -202,3 +202,11 @@ VERTEX_PROJECT_ID = os.getenv("VERTEX_PROJECT_ID")
 VERTEX_LOCATION = os.getenv("VERTEX_LOCATION", "us-central1")
 # Explicitly mapping the programmatic authentication file path in the project root
 VERTEX_CREDENTIALS_PATH = os.path.join(BASE_DIR, "gcp-vertex-sa.json")
+
+# Brevo API Configurations
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+DEFAULT_FROM_EMAIL = os.getenv("BREVO_SENDER_EMAIL", "hijazeenrakan1@gmail.com")
+BREVO_SENDER_NAME = os.getenv("BREVO_SENDER_NAME", "Vertex Fit AI")
+
+# Use our custom API Backend as Django's default email backend
+EMAIL_BACKEND = "authentication.email_backend.BrevoAPIBackend"

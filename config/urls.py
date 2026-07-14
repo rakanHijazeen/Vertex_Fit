@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 from authentication.views import (
     RegistrationAPIView, ProfileUpdateAPIView,  login_page, LogoutAPIView, signup_page, onboarding_page,
-    LoginAPIView, ProductionTokenRefreshAPIView
+    LoginAPIView, ProductionTokenRefreshAPIView, verify_email_view
 )
 
 urlpatterns = [
@@ -33,6 +33,9 @@ urlpatterns = [
     path('auth/login/', login_page, name='login_page'),
     path('auth/signup/', signup_page, name='signup_page'),
     path('auth/onboarding/', onboarding_page, name='onboarding_page'), # 2. Serves the onboarding.html page
+    
+    # Email Verification Route clicked by the user from their inbox
+    path('auth/verify-email/<str:token>/', verify_email_view, name='verify_email'),
     
     # Connect the Workouts App routing (Handles both API endpoints and the HTML Tracker)
     path('api/workouts/', include('workouts.urls')),
