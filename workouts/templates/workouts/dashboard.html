@@ -41,6 +41,32 @@
                 class="text-xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">VERTEX
                 <span class="text-emerald-400">FIT</span></span>
         </div>
+
+        {% if user.is_authenticated and not user.profile.is_email_verified %}
+        <div id="verification-banner" style="background: linear-gradient(90deg, #1e3a8a, #2563eb); color: #ffffff; padding: 12px 24px; text-align: center; font-size: 14px; font-weight: 500; border-bottom: 1px solid #3b82f6; display: flex; justify-content: center; align-items: center; gap: 8px; position: relative; z-index: 9999; animation: slideDown 0.3s ease-out;">
+            <span>✉️ Please check your email to verify your account and unlock all features.</span>
+            <button onclick="dismissBanner()" style="background: transparent; border: none; color: #93c5fd; cursor: pointer; font-size: 16px; margin-left: 12px; padding: 0 4px; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#93c5fd'">×</button>
+        </div>
+
+        <script>
+            function dismissBanner() {
+                const banner = document.getElementById('verification-banner');
+                if (banner) {
+                    banner.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
+                    banner.style.opacity = '0';
+                    banner.style.transform = 'translateY(-100%)';
+                    setTimeout(() => banner.remove(), 300);
+                }
+            }
+        </script>
+
+        <style>
+            @keyframes slideDown {
+                from { transform: translateY(-100%); }
+                to { transform: translateY(0); }
+            }
+        </style>
+        {% endif %}
         <nav class="flex items-center space-x-6">
             <a href="{% url 'live_workout_tracker' %}"
                 class="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5">

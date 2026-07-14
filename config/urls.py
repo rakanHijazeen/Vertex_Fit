@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 from authentication.views import (
     RegistrationAPIView, ProfileUpdateAPIView,  login_page, LogoutAPIView, signup_page, onboarding_page,
-    LoginAPIView, ProductionTokenRefreshAPIView, verify_email_view
+    LoginAPIView, ProductionTokenRefreshAPIView, verify_email_view, landing_page
 )
 
 urlpatterns = [
@@ -29,6 +29,9 @@ urlpatterns = [
     path('', RedirectView.as_view(url='auth/login/', permanent=False), name='root_redirect'),
     path('admin/', admin.site.urls),
 
+    # Point directly to the explicit landing view
+    path('', landing_page, name='landing'),
+    
     # Auth Views
     path('auth/login/', login_page, name='login_page'),
     path('auth/signup/', signup_page, name='signup_page'),
@@ -36,7 +39,7 @@ urlpatterns = [
     
     # Email Verification Route clicked by the user from their inbox
     path('auth/verify-email/<str:token>/', verify_email_view, name='verify_email'),
-    
+
     # Connect the Workouts App routing (Handles both API endpoints and the HTML Tracker)
     path('api/workouts/', include('workouts.urls')),
 

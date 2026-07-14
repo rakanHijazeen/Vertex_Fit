@@ -29,6 +29,11 @@ def signup_page(request):
 def onboarding_page(request):
     return render(request, 'authentication/onboarding.html')
 
+def landing_page(request):
+    if request.user.is_authenticated:
+        return redirect('/api/workouts/dashboard/') # Go straight to dashboard if already logged in[cite: 1]
+    return render(request, 'base.html')
+
 # Safely extract SimpleJWT settings from settings.py dynamically to bypass static type-checking issues
 JWT_SETTINGS = getattr(settings, 'SIMPLE_JWT', {})
 
