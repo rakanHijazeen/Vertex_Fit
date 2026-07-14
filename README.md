@@ -12,6 +12,9 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 - **2-Phase Registration Pipeline**: Split the signup workflow into a multi-step onboarding system. Phase 1 validates core credentials (email, password, and indexed unique username), while Phase 2 captures physical and biometric profile metrics using interactive, Tailwind-styled components featuring silent client-side timezone detection.
 - **Secure Email Verification Architecture**: Implemented an automated transactional verification flow paired with Brevo SMTP API infrastructure. Upon Phase 1 registration, a cryptographically signed, timestamp-bound token (`TimestampSigner`) is generated and delivered via a responsive HTML email matching the platform's dark aesthetic.
+- **Dark-Themed Password Reset Pipeline**: Integrated Django's core authentication routing with a collection of dedicated, brand-aligned templates (`password_reset_form`, `password_reset_done`, `password_reset_confirm`, and `password_reset_complete`) implementing the platform's signature dark slate and emerald glow aesthetic.
+- **Robust Multi-Format Email Dispatch**: Resolved raw text parsing edge cases by explicitly structuring the recovery views with `html_email_template_name` parameters, ensuring reliable multipart/alternative rich HTML formatting transmission across modern email clients.
+- **Dynamic Input Visibility Controls**: Embedded an asymmetric secure toggle engine directly into the password compilation view (`password_reset_confirm.html`), enabling live script-driven password show/hide functionality mapped directly onto Django's dynamically-generated field identifiers.
 - **Global Layout & Real-Time Alerts**: Introduced a root-level master layout (`base.html`) powering core page styling globally. It includes a dynamic, responsive warning banner that intercepts unverified users across workspaces, continuously urging account confirmation until the validation view updates their database profile state.
 - **Unified Identifier Authentication**: Upgraded the login flow to support both email addresses and custom usernames interchangeably from a single generic input field, handling validation case-insensitively.
 - Built a Django-based backend with modular app structure for authentication and workouts.
@@ -97,6 +100,8 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 - 2-Phase atomic onboarding pipeline separating credential tracking from deep profile physical data collection.
 
+- Full self-service account restoration workflow complete with transactional email configuration routing (`password-reset/`, `password-reset/done/`, `password-reset/confirm/<uidb64>/<token>/`, and `password-reset/complete/` views).
+
 - Custom JWT token serializers that dynamically clear and remap input payloads matching SimpleJWT requirements.
 
 - Decoupled runtime authentication backends declared within views to bypass premature application registry loading traps.
@@ -131,6 +136,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 - Core Django project scaffolding
 - 2-Phase onboarding pipeline (Credential split from biometric/physical profiles)
+- Complete multi-stage account credential reset workflow with client-side field validation and clear text overrides
 - Single-input unified login identifier tracking (Email or Username)
 - Workout session and exercise models
 - S3 media upload pipeline
