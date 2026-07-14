@@ -15,6 +15,7 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
+from django.contrib.auth import views as auth_views
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
@@ -53,6 +54,37 @@ urlpatterns = [
     # Internal API routing for the Authentication App (Handles both API endpoints and the HTML login/signup pages)
     path('api/auth-core/', include('authentication.urls', namespace='authentication')),
 
+    # DJANGO CORE PASSWORD RESET WITH EXPLICIT HTML EMAIL DISPATCH
+    path('password-reset/', 
+         auth_views.PasswordResetView.as_view(
+             template_name='authentication/password_reset_form.html',
+             # This sends the clean text version for strict mail clients:
+             email_template_name='authentication/emails/password_reset_subject.txt', 
+             # This forces Django to compile and send the beautiful HTML version! 👇
+             html_email_template_name='authentication/emails/password_reset_email.html',
+             subject_template_name='authentication/emails/password_reset_subject.txt',
+             success_url='/password-reset/done/'
+         ), 
+         name='password_reset'),
+         
+    path('password-reset/done/', 
+         auth_views.PasswordResetDoneView.as_view(
+             template_name='authentication/password_reset_done.html'
+         ), 
+         name='password_reset_done'),
+         
+    path('password-reset/confirm/<uidb64>/<token>/', 
+         auth_views.PasswordResetConfirmView.as_view(
+             template_name='authentication/password_reset_confirm.html',
+             success_url='/password-reset/complete/'
+         ), 
+         name='password_reset_confirm'),
+         
+    path('password-reset/complete/', 
+         auth_views.PasswordResetCompleteView.as_view(
+             template_name='authentication/password_reset_complete.html'
+         ), 
+         name='password_reset_complete'),
         
 ]
 
