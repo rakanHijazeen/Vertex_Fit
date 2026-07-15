@@ -89,16 +89,41 @@
     </div>
 
     <script>
-        // Check authentication availability early
+        // 1. Assign Django template variables with explicit empty fallbacks
+        const djangoAccessToken = "{{ access_token|default:'' }}";
+        const djangoRefreshToken = "{{ refresh_token|default:'' }}";
+
+        // Renders as a pure JavaScript boolean true/false
+        const djangoOnboardingComplete = "{{ onboarding_complete|default:'false' }}".toLowerCase() === 'true';
+        // 2. Save them to sessionStorage if they were successfully passed
+        if (djangoAccessToken) {
+            sessionStorage.setItem('accessToken', djangoAccessToken);
+        }
+        if (djangoRefreshToken) {
+            sessionStorage.setItem('refreshToken', djangoRefreshToken);
+        }
+
+        // 3. Verify authentication status and handle auto-redirection
         const token = sessionStorage.getItem('accessToken');
         if (!token) {
             window.location.href = "{% url 'authentication:login' %}";
+        } else if (djangoOnboardingComplete) {
+            // Safe redirect: Storage is populated with the Google OAuth tokens, now go to dashboard!
+            window.location.href = "/api/workouts/dashboard/";
         }
 
+        // 4. Handle Phase 2 Onboarding Form Submission
         document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
             e.preventDefault();
             const errorBox = document.getElementById('error-box');
             errorBox.classList.add('hidden');
+
+            // Always read the token dynamically from sessionStorage on submit
+            const activeToken = sessionStorage.getItem('accessToken');
+            if (!activeToken) {
+                window.location.href = "{% url 'authentication:login' %}";
+                return;
+            }
 
             // Detect browser timezone string automatically (e.g. "Asia/Amman")
             let clientTimezone = "Asia/Amman"; // Local fallback
@@ -123,7 +148,7 @@
                     method: "PATCH",
                     headers: {
                         "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
+                        "Authorization": `Bearer ${activeToken}`
                     },
                     body: JSON.stringify(payload)
                 });

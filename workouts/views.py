@@ -1,5 +1,5 @@
 from django.http import JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -176,6 +176,14 @@ def workout_dashboard(request):
     Renders the structural template skeleton for the dashboard.
     The data inside this page will be loaded asynchronously by JavaScript.
     """
+    # CRITICAL CHECK: Force incomplete profiles back to onboarding
+    try:
+        if not request.user.profile.onboarding_complete:
+            return redirect('/auth/onboarding/')
+    except AttributeError:
+        # If the profile doesn't exist at all, they need onboarding
+        return redirect('/auth/onboarding/')
+
     context = {
         'exercises': Exercise.objects.all()
     }

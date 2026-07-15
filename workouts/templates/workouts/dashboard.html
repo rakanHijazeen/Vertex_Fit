@@ -42,12 +42,18 @@
                 <span class="text-emerald-400">FIT</span></span>
         </div>
 
-        {% if user.is_authenticated and not user.profile.is_email_verified %}
-        <div id="verification-banner" style="background: linear-gradient(90deg, #1e3a8a, #2563eb); color: #ffffff; padding: 12px 24px; text-align: center; font-size: 14px; font-weight: 500; border-bottom: 1px solid #3b82f6; display: flex; justify-content: center; align-items: center; gap: 8px; position: relative; z-index: 9999; animation: slideDown 0.3s ease-out;">
-            <span>✉️ Please check your email to verify your account and unlock all features.</span>
-            <button onclick="dismissBanner()" style="background: transparent; border: none; color: #93c5fd; cursor: pointer; font-size: 16px; margin-left: 12px; padding: 0 4px; transition: color 0.2s;" onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#93c5fd'">×</button>
-        </div>
+        {% load socialaccount %}
+        {% get_social_accounts user as accounts %}
 
+        <!-- Only show the banner if authenticated, email isn't verified, AND they did NOT sign up via Google -->
+        {% if user.is_authenticated and not user.profile.is_email_verified and not accounts.google %}
+        <div id="verification-banner"
+            style="background: linear-gradient(90deg, #1e3a8a, #2563eb); color: #ffffff; padding: 12px 24px; text-align: center; font-size: 14px; font-weight: 500; border-bottom: 1px solid #3b82f6; display: flex; justify-content: center; align-items: center; gap: 8px; position: relative; z-index: 9999; animation: slideDown 0.3s ease-out;">
+            <span>✉️ Please check your email to verify your account and unlock all features.</span>
+            <button onclick="dismissBanner()"
+                style="background: transparent; border: none; color: #93c5fd; cursor: pointer; font-size: 16px; margin-left: 12px; padding: 0 4px; transition: color 0.2s;"
+                onmouseover="this.style.color='#ffffff'" onmouseout="this.style.color='#93c5fd'">×</button>
+        </div>
         <script>
             function dismissBanner() {
                 const banner = document.getElementById('verification-banner');
@@ -62,8 +68,13 @@
 
         <style>
             @keyframes slideDown {
-                from { transform: translateY(-100%); }
-                to { transform: translateY(0); }
+                from {
+                    transform: translateY(-100%);
+                }
+
+                to {
+                    transform: translateY(0);
+                }
             }
         </style>
         {% endif %}

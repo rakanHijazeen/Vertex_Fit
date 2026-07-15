@@ -27,7 +27,23 @@ def signup_page(request):
     return render(request, 'authentication/signup.html')
 
 def onboarding_page(request):
-    return render(request, 'authentication/onboarding.html')
+    # 1. If the user isn't logged in at all, kick them to login
+    if not request.user.is_authenticated:
+        return redirect('/auth/login/')
+
+    # 2. Otherwise, they genuinely need to onboard. Generate their tokens:
+    context = {}
+    refresh = RefreshToken.for_user(request.user)
+    context['access_token'] = str(refresh.access_token)
+    context['refresh_token'] = str(refresh)
+    
+
+    try:
+        context['onboarding_complete'] = request.user.profile.onboarding_complete
+    except AttributeError:
+        context['onboarding_complete'] = False
+
+    return render(request, 'authentication/onboarding.html', context)
 
 def landing_page(request):
     if request.user.is_authenticated:

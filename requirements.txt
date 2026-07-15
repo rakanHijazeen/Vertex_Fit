@@ -6,6 +6,7 @@ autobahn==26.6.2
 Automat==25.4.16
 boto3==1.34.122
 botocore==1.34.162
+brevo-python==5.0.1
 cbor2==6.1.2
 certifi==2026.6.17
 cffi==2.0.0
@@ -16,6 +17,7 @@ cryptography==49.0.0
 daphne==4.2.2
 distro==1.9.0
 Django==5.0.6
+django-allauth==65.18.0
 django-background-tasks==1.2.8
 django-cors-headers==4.3.1
 django-storages==1.14.4

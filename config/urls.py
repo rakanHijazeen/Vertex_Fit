@@ -32,6 +32,9 @@ urlpatterns = [
 
     # Point directly to the explicit landing view
     path('', landing_page, name='landing'),
+
+    # Django-Allauth URLs for social authentication (Google, etc.)
+    path('accounts/', include('allauth.urls')),
     
     # Auth Views
     path('auth/login/', login_page, name='login_page'),

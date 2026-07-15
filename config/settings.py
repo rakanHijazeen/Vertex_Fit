@@ -48,10 +48,22 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    
+    # Django-Allauth Required Apps
+    'django.contrib.sites',  # Required by django-allauth
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google', # Google Provider
+
+    # Local Apps
     'authentication',
     'workouts',
     'background_task',
 ]
+
+# Required for django.contrib.sites
+SITE_ID = 1
 
 ASGI_APPLICATION = 'config.asgi.application'
 
@@ -62,6 +74,10 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+
+    # Allauth middleware for account management
+    'allauth.account.middleware.AccountMiddleware',
+
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -76,7 +92,7 @@ TEMPLATES = [
         'OPTIONS': {
             'context_processors': [
                 'django.template.context_processors.debug',
-                'django.template.context_processors.request',
+                'django.template.context_processors.request', # Required by django-allauth
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
             ],
@@ -166,7 +182,45 @@ AUTH_USER_MODEL = 'authentication.User'
 AUTHENTICATION_BACKENDS = [
     'authentication.views.EmailOrUsernameModelBackend',  # Pointing to views prevents the early model-load crash
     'django.contrib.auth.backends.ModelBackend',
+
+    # Allauth Specific Authentication Backend
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
+
+# Django-Allauth Configurations & Account Reconcile Linker
+
+# Keep credentials unique
+ACCOUNT_UNIQUE_EMAIL = True
+
+# Resolves the deprecation warnings by telling allauth to use email-only logins 
+# and what fields are expected during signup.
+ACCOUNT_LOGIN_METHODS = {'email'}
+ACCOUNT_SIGNUP_FIELDS = ['email*']
+
+ACCOUNT_EMAIL_VERIFICATION = 'optional' # Google accounts are pre-verified
+
+# The magic adapter that forces email matching instead of duplicating
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_ADAPTER = "authentication.adapters.MySocialAccountAdapter"
+
+# Configuration parameters for Google OAuth
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'OAUTH_PKCE_ENABLED': True,
+    }
+}
+
+# Where to redirect users after successful login
+LOGIN_REDIRECT_URL = '/api/workouts/dashboard/' 
+LOGOUT_REDIRECT_URL = '/'
+
 # Django REST Framework global settings
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
