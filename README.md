@@ -22,6 +22,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Created workout session persistence for exercise tracking and AI feedback history.
 - Expanded the profile schema to support demographic tracking fields including tracking **Gender** to drive highly personalized baseline physiological coaching recommendations.
 - Robust Hybrid Authentication: Implemented a secure, hybrid authentication system that reconciles Django session-based security (for template-rendered pages) with JWT-based authentication (for API/WebSocket workflows). This includes dynamic secure-cookie handling, server-side **@login_required** route protection, and seamless token persistence via silent refresh patterns.
+- **Seamless Google OAuth & Biometric Onboarding Integration**: Successfully implemented Google OAuth 2.0 social sign-ups. Standardized the transition between social authentication and biometric initialization by routing Google users through Phase 2 onboarding, while preserving security tokens client-side.
 
 ### 2. Unified Video Upload and Cloud Storage Pipeline
 
@@ -114,6 +115,12 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 - Dedicated namespace isolated template rendering (`authentication/emails/`) ensuring clean backend compilation lookups.
 
+- Automated `post_save` creation signals that instantly provision a default `Profile` database row for newly registered Google OAuth accounts, preventing `RelatedObjectDoesNotExist` runtime exceptions.
+
+- Client-side token extraction and persistence inside the onboarding pipeline, preventing race conditions during social login callbacks by ensuring JWTs are written to `sessionStorage` before navigating to the dashboard.
+
+- Context-aware UI restriction of the transactional email verification warning banner, utilizing Django-Allauth template helpers to dynamically suppress the warning for pre-verified Google accounts.
+
 ### Workouts
 
 - Exercise registry and workout session data model
@@ -151,6 +158,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Transactional registration email handling via Brevo integration.
 - Cryptographic token tokenization and verification routing logic (`is_email_verified`).
 - Session-based template routing optimization bypasses allowing public landing page layout access.
+- **Google OAuth Login & Sign-up Flow**: Connected and verified Google social logins, matching automated Django database signals, dynamic token caching, and automated redirection workflows.
 
 ### In Progress / Active Focus
 
