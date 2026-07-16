@@ -1,104 +1,60 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-900 text-white">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Vertex Fit AI - Live Tracking</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
-    <style>
-        /* overlay canvas positioned above the video for drawing landmarks/tracers */
-        .relative video {
-            display: block;
-        }
+{% block title %}Vertex Fit AI - Live Tracking{% endblock %}
 
-        #output_canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-            /* allow clicks to pass through */
-        }
-    </style>
-</head>
+{% block head_extra %}
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+<style>
+    /* overlay canvas positioned above the video for drawing landmarks/tracers */
+    .relative video {
+        display: block;
+    }
 
-<body class="flex flex-col h-full overflow-hidden font-sans select-none">
+    #output_canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        /* allow clicks to pass through */
+    }
+</style>
+{% endblock %}
 
-    <div id="django-context" data-csrf="{{ csrf_token }}" class="hidden"></div>
+{% block body_class %}flex flex-col h-full overflow-hidden font-sans select-none{% endblock %}
 
-    <div class="max-w-5xl mx-auto p-4">
-        <header class="flex items-center justify-between gap-4 mb-4">
-            <div class="flex items-center space-x-3">
-                <div
-                    class="h-8 w-8 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-black shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-                    V
-                </div>
-                <span
-                    class="text-xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">VERTEX
-                    <span class="text-emerald-400">FIT</span></span>
-            </div>
+{% block content %}
+<div class="p-6 h-full flex flex-col">
+    <main class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <label for="exerciseSelector" class="text-sm text-slate-300 hidden sm:inline">Exercise</label>
+            <select id="exerciseSelector" class="bg-slate-800 text-white rounded-md px-3 py-2 border border-slate-700">
+                <option value="Squat" data-anchor-joint="24" data-track-horizontally="false">Squat</option>
+                <option value="Deadlift" data-anchor-joint="24" data-track-horizontally="false">Deadlift</option>
+                <option value="Romanian Deadlift (RDL)" data-anchor-joint="24" data-track-horizontally="false">Romanian
+                    Deadlift (RDL)</option>
+                <option value="Leg Press" data-anchor-joint="24" data-track-horizontally="false">Leg Press</option>
+                <option value="Hip Thrust" data-anchor-joint="24" data-track-horizontally="false">Hip Thrust</option>
+                <option value="Lunge" data-anchor-joint="24" data-track-horizontally="false">Lunge</option>
 
-            <nav class="flex items-center space-x-6">
-                <a href="#"
-                    class="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors flex items-center gap-1.5">
-                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Coach
-                </a>
-                <a href="{% url 'workout_dashboard' %}"
-                    class="text-sm font-semibold text-emerald-400 border-b-2 border-emerald-400 pb-1 px-1">
-                    Dashboard
-                </a>
-                <a href="{% url 'ai_chat_coach' %}"
-                    class="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors">AI Chat</a>
-                <a href="/api/auth/logout/"
-                    class="text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors">
-                    Sign Out
-                </a>
-            </nav>
-            <div class="flex items-center gap-3">
-                <label for="exerciseSelector" class="text-sm text-slate-300 hidden sm:inline">Exercise</label>
-                <select id="exerciseSelector"
-                    class="bg-slate-800 text-white rounded-md px-3 py-2 border border-slate-700">
-                    <!-- Match value strings exactly to seed data name targets -->
-                    <option value="Squat" data-anchor-joint="24" data-track-horizontally="false">Squat</option>
-                    <option value="Deadlift" data-anchor-joint="24" data-track-horizontally="false">Deadlift
-                    </option>
-                    <option value="Romanian Deadlift (RDL)" data-anchor-joint="24" data-track-horizontally="false">
-                        Romanian Deadlift (RDL)</option>
-                    <option value="Leg Press" data-anchor-joint="24" data-track-horizontally="false">Leg Press
-                    </option>
-                    <option value="Hip Thrust" data-anchor-joint="24" data-track-horizontally="false">Hip Thrust
-                    </option>
-                    <option value="Lunge" data-anchor-joint="24" data-track-horizontally="false">Lunge</option>
+                <option value="Bench Press" data-anchor-joint="16" data-track-horizontally="false">Bench Press</option>
+                <option value="Bicep Curl" data-anchor-joint="16" data-track-horizontally="false">Bicep Curl</option>
+                <option value="Overhead Press (OHP)" data-anchor-joint="16" data-track-horizontally="false">Overhead
+                    Press</option>
+                <option value="Lateral Raise" data-anchor-joint="16" data-track-horizontally="false">Lateral Raise
+                </option>
 
-                    <option value="Bench Press" data-anchor-joint="16" data-track-horizontally="false">Bench Press
-                    </option>
-                    <option value="Bicep Curl" data-anchor-joint="16" data-track-horizontally="false">Bicep Curl
-                    </option>
-                    <option value="Overhead Press (OHP)" data-anchor-joint="16" data-track-horizontally="false">
-                        Overhead
-                        Press</option>
-                    <option value="Lateral Raise" data-anchor-joint="16" data-track-horizontally="false">Lateral
-                        Raise
-                    </option>
+                <option value="Lat Pulldown" data-anchor-joint="16" data-track-horizontally="false"
+                    data-fallback-anchor="12">Lat Pulldown</option>
+                <option value="Cable Row" data-anchor-joint="16" data-track-horizontally="true"
+                    data-fallback-anchor="12">Cable Row</option>
 
-                    <option value="Lat Pulldown" data-anchor-joint="16" data-track-horizontally="false"
-                        data-fallback-anchor="12">Lat Pulldown</option>
-                    <option value="Cable Row" data-anchor-joint="16" data-track-horizontally="true"
-                        data-fallback-anchor="12">Cable Row</option>
-
-                    <option value="Pull-Up" data-anchor-joint="12" data-track-horizontally="false">Pull-Up</option>
-                    <option value="Dip" data-anchor-joint="12" data-track-horizontally="false">Dip</option>
-                    <option value="Push-Up" data-anchor-joint="16" data-track-horizontally="false">Push-Up</option>
-                </select>
-            </div>
-        </header>
-
-        <main class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <option value="Pull-Up" data-anchor-joint="12" data-track-horizontally="false">Pull-Up</option>
+                <option value="Dip" data-anchor-joint="12" data-track-horizontally="false">Dip</option>
+                <option value="Push-Up" data-anchor-joint="16" data-track-horizontally="false">Push-Up</option>
+            </select>
             <section class="md:col-span-2 bg-slate-900 rounded-lg p-2 flex flex-col items-center">
                 <div class="relative w-full bg-black rounded-md overflow-hidden">
                     <video id="webcam" autoplay playsinline muted class="w-full h-72 object-cover bg-black"></video>
@@ -160,9 +116,28 @@
                 </div>
             </aside>
         </main>
-    </div>
+ </div>
 
-    <script src="{% static 'workouts/js/workout_tracker.js' %}"></script>
-</body>
-
-</html>
+ <script>
+    // Ensure the logout link works on this page too
+    document.addEventListener("DOMContentLoaded", () => {
+        const logoutLink = document.querySelector('.logout-link');
+        if (logoutLink) {
+            logoutLink.addEventListener('click', async (e) => {
+                e.preventDefault();
+                await fetch("{% url 'token_blacklist' %}", {
+                    method: "POST",
+                    headers: { 
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}" 
+                    },
+                    credentials: 'include'
+                });
+                sessionStorage.removeItem('accessToken');
+                window.location.href = "{% url 'login_page' %}";
+            });
+        }
+    });
+</script>
+<script src="{% static 'workouts/js/workout_tracker.js' %}"></script>
+{% endblock %}

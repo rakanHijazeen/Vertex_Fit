@@ -1,175 +1,172 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-950 text-white">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vertex Fit AI - Sign In</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-</head>
+{% block title %}Vertex Fit AI - Sign In{% endblock %}
 
-<body class="flex items-center justify-center min-h-full bg-slate-950 font-sans antialiased text-slate-200 px-4">
-    <div
-        class="w-full max-w-md bg-slate-900/40 border border-slate-900 p-8 rounded-2xl backdrop-blur-sm shadow-2xl space-y-6">
+{% block body_class %}flex items-center justify-center min-h-full bg-slate-950 font-sans antialiased text-slate-200
+px-4{% endblock %}
 
-        <div class="flex flex-col items-center space-y-3 text-center">
-            <div
-                class="h-10 w-10 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] text-xl">
-                V
-            </div>
-            <h2
-                class="text-2xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                VERTEX <span class="text-emerald-400">FIT</span>
-            </h2>
-            <p class="text-xs text-slate-400">Sign in to sync your biometric metrics and start your AI Chat session</p>
+{% block header %}{% endblock %}
+
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div
+    class="w-full max-w-md bg-slate-900/40 border border-slate-900 p-8 rounded-2xl backdrop-blur-sm shadow-2xl space-y-6">
+
+    <div class="flex flex-col items-center space-y-3 text-center">
+        <div
+            class="h-10 w-10 rounded-lg bg-emerald-500 flex items-center justify-center font-black text-black shadow-[0_0_20px_rgba(16,185,129,0.4)] text-xl">
+            V
         </div>
-
-        <div id="error-box"
-            class="hidden p-3.5 text-xs rounded-xl border bg-rose-500/10 text-rose-400 border-rose-500/20 transition-all duration-300">
-        </div>
-
-        <form id="login-form" class="space-y-4">
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username or
-                    Email Address</label>
-                <input type="text" id="login_identifier" required autocomplete="username"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-            </div>
-
-            <!-- Fix 1: Added 'relative' to this wrapper div so the button positions correctly -->
-            <div>
-                <label
-                    class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
-                <div class="relative flex items-center">
-                    <!-- Fix 2: Added 'pr-11' to prevent typed text from hiding behind the eye icon -->
-                    <input type="password" id="password" required autocomplete="current-password"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-11 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-
-                    <button type="button" onclick="togglePasswordVisibility('password', this)"
-                        class="absolute right-3.5 text-slate-500 hover:text-slate-300 focus:outline-none cursor-pointer flex items-center justify-center">
-                        <!-- Dynamic Eye Icon Wrapper -->
-                        <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
-                            stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M2.036 12.322a1.012 1.012 0 0 1 0-.644m19.073 0a1.012 1.012 0 0 1 0 .644M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round"
-                                d="M5 12h.01M19 12h.01M12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7C2.46 7.943 6.251 5 12 5Z" />
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <button type="submit"
-                class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-emerald-500/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200 cursor-pointer text-sm mt-2">
-                Sign In
-            </button>
-        </form>
-
-        <!-- Divider and Google OAuth Options -->
-        <div class="mt-4 space-y-4">
-            <div class="relative flex items-center py-1">
-                <div class="flex-grow border-t border-slate-800"></div>
-                <span
-                    class="flex-shrink mx-4 text-slate-500 text-[10px] uppercase tracking-widest font-semibold">or</span>
-                <div class="flex-grow border-t border-slate-800"></div>
-            </div>
-
-            <!-- POST Form Wrapper to Bypass Confirmation Screen -->
-            <form action="/accounts/google/login/?next=/auth/onboarding/" method="post" class="w-full">
-                {% csrf_token %}
-                <button type="submit"
-                    class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/40 text-slate-200 rounded-xl transition-all duration-200 group cursor-pointer text-sm font-semibold">
-                    <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path
-                            d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.6h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.4c0,-0.7 -0.1,-1.34 -0.33,-2M12,21c2.43,0 4.47,-0.8 5.96,-2.2l-3.3,-2.6c-0.9,0.6 -2.07,0.98 -3.3,0.98c-2.34,0 -4.33,-1.58 -5.03,-3.7H3v2.7C4.47,19.2 8,21 12,21Z"
-                            fill="#34a853" />
-                        <path
-                            d="M6.97,13.48c-0.18,-0.54 -0.28,-1.11 -0.28,-1.7c0,-0.59 0.1,-1.16 0.28,-1.7V7.38H3V10.1C2.36,11.3 2,12.6 2,14c0,1.4 0.36,2.7 1,3.9l3.97,-3.12Z"
-                            fill="#fbbc05" />
-                        <path
-                            d="M12,5.38c1.32,0 2.5,0.45 3.44,1.35l2.58,-2.58C16.46,2.73 14.43,2 12,2c-4,0 -7.53,1.8 -9,4.9l3.97,3.12c0.7,-2.12 2.69,-3.7 5.03,-3.7Z"
-                            fill="#ea4335" />
-                        <path
-                            d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.6h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.4c0,-0.7 -0.1,-1.34 -0.33,-2Z"
-                            fill="#4285f4" />
-                    </svg>
-                    <span class="group-hover:text-emerald-400 transition-colors">Continue with Google</span>
-                </button>
-            </form>
-        </div>
-
-        <p class="text-xs text-slate-400 text-center pt-2">
-            Don't have an account?
-            <a href="{% url 'authentication:signup' %}"
-                class="text-emerald-400 font-semibold hover:underline ml-1">Create Account➔</a>
-        </p>
-        <p class="text-xs text-slate-500 text-center pt-1">
-            Forgot credentials?
-            <a href="{% url 'password_reset' %}"
-                class="text-slate-400 font-medium hover:text-emerald-400 hover:underline transition-colors ml-1">Reset
-                Password➔</a>
-        </p>
+        <h2
+            class="text-2xl font-black tracking-wider bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+            VERTEX <span class="text-emerald-400">FIT</span>
+        </h2>
+        <p class="text-xs text-slate-400">Sign in to sync your biometric metrics and start your AI Chat session</p>
     </div>
 
-    <script>
-        let memoryAccessToken = null;
+    <div id="error-box"
+        class="hidden p-3.5 text-xs rounded-xl border bg-rose-500/10 text-rose-400 border-rose-500/20 transition-all duration-300">
+    </div>
 
-        // Fix 3: Added missing visibility toggle function with dynamic SVG shifting
-        function togglePasswordVisibility(inputId, btn) {
-            const passwordInput = document.getElementById(inputId);
-            const svgIcon = btn.querySelector('svg');
+    <form id="login-form" class="space-y-4">
+        <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username or
+                Email Address</label>
+            <input type="text" id="login_identifier" required autocomplete="username"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+        </div>
 
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                // Switch to "Eye Slash" icon path
-                svgIcon.innerHTML = `
+        <!-- Fix 1: Added 'relative' to this wrapper div so the button positions correctly -->
+        <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Password</label>
+            <div class="relative flex items-center">
+                <!-- Fix 2: Added 'pr-11' to prevent typed text from hiding behind the eye icon -->
+                <input type="password" id="password" required autocomplete="current-password"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-11 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+
+                <button type="button" onclick="togglePasswordVisibility('password', this)"
+                    class="absolute right-3.5 text-slate-500 hover:text-slate-300 focus:outline-none cursor-pointer flex items-center justify-center">
+                    <!-- Dynamic Eye Icon Wrapper -->
+                    <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"
+                        stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M2.036 12.322a1.012 1.012 0 0 1 0-.644m19.073 0a1.012 1.012 0 0 1 0 .644M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                            d="M5 12h.01M19 12h.01M12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7C2.46 7.943 6.251 5 12 5Z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <button type="submit"
+            class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-emerald-500/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200 cursor-pointer text-sm mt-2">
+            Sign In
+        </button>
+    </form>
+
+    <!-- Divider and Google OAuth Options -->
+    <div class="mt-4 space-y-4">
+        <div class="relative flex items-center py-1">
+            <div class="flex-grow border-t border-slate-800"></div>
+            <span class="flex-shrink mx-4 text-slate-500 text-[10px] uppercase tracking-widest font-semibold">or</span>
+            <div class="flex-grow border-t border-slate-800"></div>
+        </div>
+
+        <!-- POST Form Wrapper to Bypass Confirmation Screen -->
+        <form action="/accounts/google/login/?next=/auth/onboarding/" method="post" class="w-full">
+            {% csrf_token %}
+            <button type="submit"
+                class="w-full flex items-center justify-center gap-3 px-4 py-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/40 text-slate-200 rounded-xl transition-all duration-200 group cursor-pointer text-sm font-semibold">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.6h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.4c0,-0.7 -0.1,-1.34 -0.33,-2M12,21c2.43,0 4.47,-0.8 5.96,-2.2l-3.3,-2.6c-0.9,0.6 -2.07,0.98 -3.3,0.98c-2.34,0 -4.33,-1.58 -5.03,-3.7H3v2.7C4.47,19.2 8,21 12,21Z"
+                        fill="#34a853" />
+                    <path
+                        d="M6.97,13.48c-0.18,-0.54 -0.28,-1.11 -0.28,-1.7c0,-0.59 0.1,-1.16 0.28,-1.7V7.38H3V10.1C2.36,11.3 2,12.6 2,14c0,1.4 0.36,2.7 1,3.9l3.97,-3.12Z"
+                        fill="#fbbc05" />
+                    <path
+                        d="M12,5.38c1.32,0 2.5,0.45 3.44,1.35l2.58,-2.58C16.46,2.73 14.43,2 12,2c-4,0 -7.53,1.8 -9,4.9l3.97,3.12c0.7,-2.12 2.69,-3.7 5.03,-3.7Z"
+                        fill="#ea4335" />
+                    <path
+                        d="M21.35,11.1H12v2.7h5.38c-0.24,1.28 -0.96,2.37 -2.04,3.1v2.6h3.3c1.93,-1.78 3.04,-4.4 3.04,-7.4c0,-0.7 -0.1,-1.34 -0.33,-2Z"
+                        fill="#4285f4" />
+                </svg>
+                <span class="group-hover:text-emerald-400 transition-colors">Continue with Google</span>
+            </button>
+        </form>
+    </div>
+
+    <p class="text-xs text-slate-400 text-center pt-2">
+        Don't have an account?
+        <a href="{% url 'authentication:signup' %}" class="text-emerald-400 font-semibold hover:underline ml-1">Create
+            Account➔</a>
+    </p>
+    <p class="text-xs text-slate-500 text-center pt-1">
+        Forgot credentials?
+        <a href="{% url 'password_reset' %}"
+            class="text-slate-400 font-medium hover:text-emerald-400 hover:underline transition-colors ml-1">Reset
+            Password➔</a>
+    </p>
+</div>
+
+<script>
+    let memoryAccessToken = null;
+
+    // Fix 3: Added missing visibility toggle function with dynamic SVG shifting
+    function togglePasswordVisibility(inputId, btn) {
+        const passwordInput = document.getElementById(inputId);
+        const svgIcon = btn.querySelector('svg');
+
+        if (passwordInput.type === 'password') {
+            passwordInput.type = 'text';
+            // Switch to "Eye Slash" icon path
+            svgIcon.innerHTML = `
                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
                 `;
-            } else {
-                passwordInput.type = 'password';
-                // Switch back to regular "Eye" icon path
-                svgIcon.innerHTML = `
+        } else {
+            passwordInput.type = 'password';
+            // Switch back to regular "Eye" icon path
+            svgIcon.innerHTML = `
                     <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.644m19.073 0a1.012 1.012 0 0 1 0 .644M15.75 12a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0Z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h.01M19 12h.01M12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7C2.46 7.943 6.251 5 12 5Z" />
                 `;
-            }
         }
+    }
 
-        document.getElementById('login-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const errorBox = document.getElementById('error-box');
-            errorBox.classList.add('hidden');
+    document.getElementById('login-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorBox = document.getElementById('error-box');
+        errorBox.classList.add('hidden');
 
-            const payload = {
-                login_identifier: document.getElementById('login_identifier').value.trim(),
-                password: document.getElementById('password').value
-            };
+        const payload = {
+            login_identifier: document.getElementById('login_identifier').value.trim(),
+            password: document.getElementById('password').value
+        };
 
-            try {
-                const response = await fetch("/api/auth/login/", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(payload)
-                });
+        try {
+            const response = await fetch("/api/auth/login/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
 
-                const data = await response.json();
+            const data = await response.json();
 
-                if (response.ok) {
-                    memoryAccessToken = data.access;
-                    sessionStorage.setItem('accessToken', data.access);
-                    sessionStorage.setItem('fresh_login', 'true');
-                    window.location.href = "/api/workouts/dashboard/";
-                } else {
-                    errorBox.innerText = data.detail || "Invalid credentials. Please verify your identifier and password.";
-                    errorBox.classList.remove('hidden');
-                }
-            } catch (err) {
-                errorBox.innerText = "System authentication link down. Try again shortly.";
+            if (response.ok) {
+                memoryAccessToken = data.access;
+                sessionStorage.setItem('accessToken', data.access);
+                sessionStorage.setItem('fresh_login', 'true');
+                window.location.href = "/api/workouts/dashboard/";
+            } else {
+                errorBox.innerText = data.detail || "Invalid credentials. Please verify your identifier and password.";
                 errorBox.classList.remove('hidden');
             }
-        });
-    </script>
-</body>
-
-</html>
+        } catch (err) {
+            errorBox.innerText = "System authentication link down. Try again shortly.";
+            errorBox.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}

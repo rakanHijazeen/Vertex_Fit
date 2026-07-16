@@ -1,7 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
-from .views import LogoutAPIView, RegistrationAPIView, ProfileUpdateAPIView, LoginAPIView, login_page, signup_page
+from .views import LogoutAPIView, ProfileSettingsAPIView, RegistrationAPIView, ProfileUpdateAPIView, LoginAPIView, login_page, profile_page, signup_page
 
 app_name = 'authentication'
 
@@ -38,4 +38,10 @@ urlpatterns = [
     path('password-reset-complete/', 
          auth_views.PasswordResetCompleteView.as_view(template_name='registration/password_reset_complete.html'), 
          name='password_reset_complete'),
+
+     # 1. The URL you should type into your browser to see your styled page:
+    path('profile/', profile_page, name='profile_page'),
+
+    # 2. The URL your JavaScript fetch request hits in the background:
+    path('api/profile/update/', ProfileSettingsAPIView.as_view(), name='profile_api'),
 ]

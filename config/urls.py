@@ -22,7 +22,7 @@ from django.conf.urls.static import static
 from django.views.generic import RedirectView
 from authentication.views import (
     RegistrationAPIView, ProfileUpdateAPIView,  login_page, LogoutAPIView, signup_page, onboarding_page,
-    LoginAPIView, ProductionTokenRefreshAPIView, verify_email_view, landing_page
+    LoginAPIView, ProductionTokenRefreshAPIView, verify_email_view, landing_page, profile_page, ProfileSettingsAPIView
 )
 
 urlpatterns = [
@@ -40,6 +40,7 @@ urlpatterns = [
     path('auth/login/', login_page, name='login_page'),
     path('auth/signup/', signup_page, name='signup_page'),
     path('auth/onboarding/', onboarding_page, name='onboarding_page'), # 2. Serves the onboarding.html page
+    path('auth/profile/', profile_page, name='profile_page'),
     
     # Email Verification Route clicked by the user from their inbox
     path('auth/verify-email/<str:token>/', verify_email_view, name='verify_email'),
@@ -53,6 +54,7 @@ urlpatterns = [
     path('api/auth/login/', LoginAPIView.as_view(), name='token_obtain_pair'),
     path('api/auth/refresh/', ProductionTokenRefreshAPIView.as_view(), name='token_refresh'),  
     path('api/auth/logout/', LogoutAPIView.as_view(), name='token_blacklist'), 
+    path('api/profile/update/', ProfileSettingsAPIView.as_view(), name='profile_update'),
 
     # Internal API routing for the Authentication App (Handles both API endpoints and the HTML login/signup pages)
     path('api/auth-core/', include('authentication.urls', namespace='authentication')),

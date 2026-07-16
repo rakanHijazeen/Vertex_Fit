@@ -5,8 +5,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vertex Fit AI - Real-Time AI Fitness Coach & Form Analysis</title>
+    <title>{% block title %}Vertex Fit AI - Real-Time AI Fitness Coach & Form Analysis{% endblock %}</title>
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    {% block head_extra %}{% endblock %}
     <style>
         ::-webkit-scrollbar {
             width: 6px;
@@ -45,8 +46,10 @@
     </style>
 </head>
 
-<body class="flex flex-col min-h-full bg-slate-950 font-sans antialiased text-slate-200">
+<body
+    class="{% block body_class %}flex flex-col min-h-full bg-slate-950 font-sans antialiased text-slate-200{% endblock %}">
 
+    {% block header %}
     <!-- Header / Navigation -->
     <header
         class="sticky top-0 z-50 border-b border-slate-900 bg-slate-950/80 backdrop-blur-md px-6 py-4 flex items-center justify-between shrink-0">
@@ -61,24 +64,47 @@
             </span>
         </div>
         <nav class="hidden md:flex items-center space-x-8">
-            <a href="#features"
-                class="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors">Features</a>
-            <a href="#how-it-works"
-                class="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors">How It Works</a>
-            <a href="#ai-capabilities"
-                class="text-sm font-medium text-slate-400 hover:text-emerald-400 transition-colors">AI Capabilities</a>
+            {% if user.is_authenticated %}
+                <!-- Dashboard Navigation -->
+                <a href="{% url 'live_workout_tracker' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'live_workout_tracker' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Live Coach</a>
+                <!-- Active state logic for Dashboard -->
+                <a href="{% url 'workout_dashboard' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'workout_dashboard' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Dashboard</a>
+                <!-- Active state logic for AI Chat -->
+                <a href="{% url 'ai_chat_coach' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'ai_chat_coach' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">AI Chat</a>
+                <a href="{% url 'token_blacklist' %}" class="logout-link text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors">Sign Out</a>
+            {% else %}
+                <!-- Landing Page Navigation -->
+                <a href="#features" class="text-sm font-medium text-slate-400 hover:text-emerald-400">Features</a>
+                <a href="#how-it-works" class="text-sm font-medium text-slate-400 hover:text-emerald-400">How It Works</a>
+                <a href="#ai-capabilities" class="text-sm font-medium text-slate-400 hover:text-emerald-400">AI Capabilities</a>
+            {% endif %}
         </nav>
+
+        <!-- Authentication & Profile Controls -->
         <div class="flex items-center space-x-4">
-            <a href="/auth/login/" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Sign
-                In</a>
-            <a href="/auth/register/phase-1/"
-                class="bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:brightness-110 active:scale-95 transition-all">
-                Get Started
-            </a>
+            {% if user.is_authenticated %}
+                <!-- Logged In: Profile Icon -->
+                <a href="{% url 'profile_page' %}" 
+                   class="flex items-center justify-center h-10 w-10 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-slate-800 transition-all group" 
+                   title="View Profile">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                </a>
+            {% else %}
+                <!-- Guest: Auth Buttons -->
+                <a href="/auth/login/" class="text-sm font-medium text-slate-400 hover:text-white transition-colors">Sign In</a>
+                <a href="/auth/register/phase-1/"
+                    class="bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm hover:shadow-[0_0_15px_rgba(16,185,129,0.3)] hover:brightness-110 active:scale-95 transition-all">
+                    Get Started
+                </a>
+            {% endif %}
         </div>
     </header>
+    {% endblock %}
 
     <!-- Main Hero Section -->
+    {% block content %}
     <main class="flex-1">
         <section class="relative pt-20 pb-24 overflow-hidden">
             <!-- Background Accent Glows -->
@@ -312,8 +338,10 @@
             </div>
         </section>
     </main>
+    {% endblock %}
 
     <!-- Global Layout Footer -->
+    {% block footer %}
     <footer class="border-t border-slate-900 py-8 px-6 bg-slate-950">
         <div
             class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between text-xs text-slate-500 gap-4">
@@ -329,6 +357,7 @@
             </div>
         </div>
     </footer>
+    {% endblock %}
 
 </body>
 

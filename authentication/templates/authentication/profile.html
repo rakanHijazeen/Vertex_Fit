@@ -1,0 +1,394 @@
+{% extends "base.html" %}
+
+{% block title %}Vertex Fit AI - Profile{% endblock %}
+
+{% block body_class %}min-h-full bg-slate-950 font-sans antialiased text-slate-200{% endblock %}
+
+{% block header %}{% endblock %}
+{% block footer %}{% endblock %}
+
+{% block content %}
+<div
+    class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.12),_transparent_32%),linear-gradient(180deg,_#020617_0%,_#020617_100%)]">
+    <div class="max-w-7xl mx-auto px-4 py-6 lg:py-8">
+        <header
+            class="mb-6 rounded-3xl border border-slate-800/80 bg-slate-900/45 backdrop-blur-sm shadow-2xl px-5 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div class="flex items-center gap-3">
+                <div
+                    class="h-10 w-10 rounded-xl bg-emerald-500 flex items-center justify-center font-black text-black shadow-[0_0_20px_rgba(16,185,129,0.35)]">
+                    V</div>
+                <div>
+                    <p class="text-xs uppercase tracking-[0.3em] text-slate-500 font-semibold">Account Center</p>
+                    <h1 class="text-2xl md:text-3xl font-black tracking-tight text-white">Profile Settings</h1>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3 flex-wrap">
+                <a href="{% url 'workout_dashboard' %}"
+                    class="text-sm font-medium text-slate-300 hover:text-emerald-400 transition-colors">Dashboard</a>
+                <a href="{% url 'live_workout_tracker' %}"
+                    class="text-sm font-medium text-slate-300 hover:text-emerald-400 transition-colors">Live Coach</a>
+                <a href="{% url 'ai_chat_coach' %}"
+                    class="text-sm font-medium text-slate-300 hover:text-emerald-400 transition-colors">AI Chat</a>
+                <button id="edit-button" type="button"
+                    class="bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm hover:brightness-110 active:scale-95 transition-all">Edit</button>
+                <button id="save-button" type="submit" form="profile-form"
+                    class="hidden bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold px-4 py-2 rounded-xl text-sm hover:brightness-110 active:scale-95 transition-all">Save</button>
+                <button id="cancel-button" type="button"
+                    class="hidden border border-slate-700 bg-slate-900/60 text-slate-200 font-bold px-4 py-2 rounded-xl text-sm hover:border-slate-600 transition-all">Cancel</button>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_320px] gap-6 items-start">
+            <main class="space-y-6">
+                <section class="rounded-3xl border border-slate-800/80 bg-slate-900/45 backdrop-blur-sm shadow-2xl p-6">
+                    <div class="flex flex-col gap-2 md:flex-row md:items-start md:justify-between mb-6">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.25em] text-emerald-400 font-semibold">Credentials
+                            </p>
+                            <h2 class="text-xl font-extrabold text-white mt-1">Account identity</h2>
+                        </div>
+                        {% if is_oauth_user %}
+                        <div
+                            class="inline-flex items-center gap-2 self-start rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                            <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                            Social Sign-In{% if oauth_provider %} via {{ oauth_provider|title }}{% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <form id="profile-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="md:col-span-1">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Username</label>
+                            <input type="text" id="username" value="{{ user.username|default:'' }}" disabled
+                                data-profile-field="username"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                            <p class="mt-1 text-xs text-rose-400 hidden" data-error-for="username"></p>
+                        </div>
+
+                        <div class="md:col-span-1">
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Email
+                                Address</label>
+                            <input type="email" id="email" value="{{ user.email|default:'' }}" disabled
+                                data-profile-field="email" {% if is_oauth_user %}data-locked-by-oauth="true" {% endif %}
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                            <p class="mt-1 text-xs text-rose-400 hidden" data-error-for="email"></p>
+                            <p class="mt-2 text-xs text-slate-500">Need a new password? <a
+                                    href="{% url 'password_reset' %}"
+                                    class="text-emerald-400 font-semibold hover:underline">Reset it here</a>.</p>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="rounded-3xl border border-slate-800/80 bg-slate-900/45 backdrop-blur-sm shadow-2xl p-6">
+                    <div class="mb-6">
+                        <p class="text-xs uppercase tracking-[0.25em] text-emerald-400 font-semibold">Biometrics</p>
+                        <h2 class="text-xl font-extrabold text-white mt-1">Body metrics and training profile</h2>
+                    </div>
+
+                    <div id="error-box"
+                        class="hidden mb-4 p-3.5 text-xs rounded-xl border bg-rose-500/10 text-rose-400 border-rose-500/20 transition-all duration-300">
+                    </div>
+
+                    <form id="biometrics-form" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Gender</label>
+                                <select id="gender" disabled data-profile-field="gender"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+                                    <option value="Male" {% if 'Male' in profile.gender %}selected{% endif %}>Male</option>
+                                    <option value="Female" {% if 'Female' in profile.gender %}selected{% endif %}>Female</option>
+                                </select>
+                                <p class="mt-1 text-xs text-rose-400 hidden" data-error-for="gender"></p>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Date
+                                    of Birth</label>
+                                <input type="date" id="date_of_birth"
+                                    value="{% if profile.date_of_birth %}{{ profile.date_of_birth|date:'Y-m-d' }}{% endif %}"
+                                    disabled data-profile-field="date_of_birth"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                                <p class="mt-1 text-xs text-rose-400 hidden" data-error-for="date_of_birth"></p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label
+                                    class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Current
+                                    Height (cm)</label>
+                                <input type="number" id="height" value="{{ profile.height|default:'' }}" disabled
+                                    data-profile-field="height" min="100" max="250" placeholder="180"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                                <p class="mt-1 text-xs text-rose-400 hidden" data-error-for="height"></p>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Target
+                                    Weight (kg)</label>
+                                <input type="number" id="target_weight" value="{{ profile.target_weight|default:'' }}"
+                                    disabled data-profile-field="target_weight" min="30" max="200" placeholder="75"
+                                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all disabled:opacity-70 disabled:cursor-not-allowed">
+                                <p class="mt-1 text-xs text-rose-400 hidden" data-error-for="target_weight"></p>
+                            </div>
+                        </div>
+
+                        <div>
+                            <label
+                                class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Fitness
+                                Goal</label>
+                            <select id="fitness_goal" disabled data-profile-field="fitness_goal"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+                                <option value="BULK" {% if 'BULK' in profile.fitness_goal %}selected{% endif %}>MuscleGain (Bulk)</option>
+                                <option value="CUT" {% if 'CUT' in profile.fitness_goal %}selected{% endif %}>Fat Loss(Cut)</option>
+                                <option value="MAINTAIN" {% if 'MAINTAIN' in profile.fitness_goal %}selected{% endif %}>Maintenance</option>
+                            </select>
+                            <p class="mt-1 text-xs text-rose-400 hidden" data-error-for="fitness_goal"></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">
+                                Experience Level
+                            </label>
+                            <select id="experience_level" disabled data-profile-field="experience_level"
+                                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed">
+                                <option value="BEGINNER" {% if 'BEGINNER' in profile.experience_level %}selected{% endif %}>Beginner (&lt; 1 year)</option>
+                                <option value="INTERMEDIATE" {% if 'INTERMEDIATE' in profile.experience_level %}selected{% endif %}>Intermediate (1-3 years)</option>
+                                <option value="ADVANCED" {% if 'ADVANCED' in profile.experience_level %}selected{% endif %}>Advanced (3+ years)</option>
+                            </select>
+                            <p class="mt-1 text-xs text-rose-400 hidden" data-error-for="experience_level"></p>
+                        </div>
+                    </form>
+                </section>
+            </main>
+
+            <aside
+                class="lg:sticky lg:top-6 rounded-3xl border border-slate-800/80 bg-slate-900/55 backdrop-blur-sm shadow-2xl p-5 space-y-4">
+                <div>
+                    <p class="text-xs uppercase tracking-[0.25em] text-slate-500 font-semibold">Status</p>
+                    <div
+                        class="mt-3 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold border {% if profile.is_email_verified %}bg-emerald-500/10 text-emerald-300 border-emerald-500/30{% else %}bg-amber-500/10 text-amber-300 border-amber-500/30{% endif %}">
+                        <span
+                            class="h-2 w-2 rounded-full {% if profile.is_email_verified %}bg-emerald-400{% else %}bg-amber-400{% endif %}"></span>
+                        {% if profile.is_email_verified %}Verified{% else %}Unverified{% endif %}
+                    </div>
+                </div>
+
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/60 p-4 space-y-3">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Account Type</p>
+                        <p class="mt-1 text-sm text-slate-200">{% if is_oauth_user %}Social / OAuth{% else %}Email &
+                            Password{% endif %}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Email</p>
+                        <p class="mt-1 text-sm text-slate-200 break-all">{{ user.email }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.2em] text-slate-500 font-semibold">Username</p>
+                        <p class="mt-1 text-sm text-slate-200 break-all">{{ user.username }}</p>
+                    </div>
+                    {% if is_oauth_user %}
+                    <div
+                        class="inline-flex items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-300">
+                        <span class="h-2 w-2 rounded-full bg-emerald-400"></span>
+                        {% if oauth_provider %}{{ oauth_provider|title }}{% else %}OAuth{% endif %} linked
+                    </div>
+                    {% endif %}
+                </div>
+            </aside>
+        </div>
+    </div>
+</div>
+
+<div id="profile-toast"
+    class="fixed bottom-5 right-5 z-50 hidden max-w-sm rounded-2xl border border-emerald-500/30 bg-slate-900/95 px-4 py-3 text-sm text-emerald-200 shadow-2xl backdrop-blur">
+    <span id="profile-toast-text"></span>
+</div>
+
+<script>
+    const profileForm = document.getElementById('profile-form');
+    const editButton = document.getElementById('edit-button');
+    const saveButton = document.getElementById('save-button');
+    const cancelButton = document.getElementById('cancel-button');
+    const errorBox = document.getElementById('error-box');
+    const toast = document.getElementById('profile-toast');
+    const toastText = document.getElementById('profile-toast-text');
+    const formFields = Array.from(document.querySelectorAll('[data-profile-field]'));
+    const originalValues = {};
+
+    formFields.forEach((field) => {
+        originalValues[field.id] = field.value;
+    });
+
+    function showToast(message) {
+        toastText.textContent = message;
+        toast.classList.remove('hidden');
+        toast.classList.add('flex');
+        clearTimeout(window.__profileToastTimer);
+        window.__profileToastTimer = setTimeout(() => {
+            toast.classList.add('hidden');
+            toast.classList.remove('flex');
+        }, 2800);
+    }
+
+    function clearErrors() {
+        errorBox.classList.add('hidden');
+        errorBox.textContent = '';
+        document.querySelectorAll('[data-error-for]').forEach((node) => {
+            node.textContent = '';
+            node.classList.add('hidden');
+        });
+    }
+
+    function setFieldErrors(errors) {
+        clearErrors();
+        let topLevelMessage = '';
+
+        Object.entries(errors || {}).forEach(([key, value]) => {
+            const message = Array.isArray(value) ? value.join(' ') : value;
+            const fieldError = document.querySelector(`[data-error-for="${key}"]`);
+            if (fieldError) {
+                fieldError.textContent = message;
+                fieldError.classList.remove('hidden');
+            } else {
+                topLevelMessage = topLevelMessage ? `${topLevelMessage} | ${key}: ${message}` : `${key}: ${message}`;
+            }
+        });
+
+        if (topLevelMessage) {
+            errorBox.textContent = topLevelMessage;
+            errorBox.classList.remove('hidden');
+        }
+    }
+
+    function setEditingEnabled(enabled) {
+        formFields.forEach((field) => {
+            if (field.dataset.lockedByOauth === 'true') {
+                field.disabled = true;
+                return;
+            }
+            field.disabled = !enabled;
+        });
+
+        editButton.classList.toggle('hidden', enabled);
+        saveButton.classList.toggle('hidden', !enabled);
+        cancelButton.classList.toggle('hidden', !enabled);
+    }
+
+    function restoreOriginalValues() {
+        Object.entries(originalValues).forEach(([fieldId, value]) => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.value = value;
+            }
+        });
+        clearErrors();
+    }
+
+    function collectPayload() {
+        return {
+            username: document.getElementById('username').value.trim(),
+            email: document.getElementById('email').value.trim(),
+            gender: document.getElementById('gender').value,
+            date_of_birth: document.getElementById('date_of_birth').value,
+            height: document.getElementById('height').value ? parseFloat(document.getElementById('height').value) : null,
+            target_weight: document.getElementById('target_weight').value ? parseFloat(document.getElementById('target_weight').value) : null,
+            fitness_goal: document.getElementById('fitness_goal').value,
+            experience_level: document.getElementById('experience_level').value,
+        };
+    }
+
+    async function getProfileToken() {
+        const storedToken = sessionStorage.getItem('accessToken');
+        if (storedToken) {
+            return storedToken;
+        }
+
+        try {
+            const refreshResponse = await fetch('/api/auth/refresh/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (!refreshResponse.ok) {
+                throw new Error('Unable to refresh access token');
+            }
+
+            const data = await refreshResponse.json();
+            if (data.access) {
+                sessionStorage.setItem('accessToken', data.access);
+                return data.access;
+            }
+        } catch (error) {
+            console.warn('Profile token fetch failed:', error);
+        }
+
+        window.location.href = "{% url 'login_page' %}";
+        return null;
+    }
+
+    editButton.addEventListener('click', () => {
+        clearErrors();
+        setEditingEnabled(true);
+    });
+
+    cancelButton.addEventListener('click', () => {
+        restoreOriginalValues();
+        setEditingEnabled(false);
+    });
+
+    profileForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        clearErrors();
+
+        // 1. Try to fetch the active JWT token
+        const token = await getProfileToken();
+
+        const headers = {
+            'Content-Type': 'application/json',
+            // 2. Always attach the Django template CSRF token for secure Session fallbacks
+            'X-CSRFToken': '{{ csrf_token }}'
+        };
+
+        // 3. If a JWT token exists, add it to the authorization headers
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const payload = collectPayload();
+
+        try {
+            const response = await fetch('/api/profile/update/', { // Make sure this matches your path configuration exactly
+                method: 'PATCH',
+                headers: headers,
+                body: JSON.stringify(payload)
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                Object.assign(originalValues, collectPayload());
+                setEditingEnabled(false);
+                showToast(data.message || 'Profile updated successfully.');
+                return;
+            }
+
+            if (data && typeof data === 'object') {
+                setFieldErrors(data);
+            } else {
+                errorBox.textContent = 'Unable to update profile.';
+                errorBox.classList.remove('hidden');
+            }
+        } catch (error) {
+            errorBox.textContent = 'Connection error while saving profile changes.';
+            errorBox.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}

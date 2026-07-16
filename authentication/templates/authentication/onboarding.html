@@ -1,177 +1,175 @@
+{% extends "base.html" %}
 {% load static %}
-<!DOCTYPE html>
-<html lang="en" class="h-full bg-slate-950 text-white">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vertex Fit AI - Biometric Calibration</title>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-</head>
+{% block title %}Vertex Fit AI - Biometric Calibration{% endblock %}
 
-<body class="flex items-center justify-center min-h-full bg-slate-950 font-sans antialiased text-slate-200 px-4">
-    <div
-        class="w-full max-w-lg bg-slate-900/40 border border-slate-900 p-8 rounded-2xl backdrop-blur-sm shadow-2xl space-y-6">
+{% block body_class %}flex items-center justify-center min-h-full bg-slate-950 font-sans antialiased text-slate-200
+px-4{% endblock %}
 
-        <div class="flex flex-col items-center space-y-2 text-center">
-            <h2
-                class="text-2xl font-black tracking-wider bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent uppercase">
-                Biometric Profiles
-            </h2>
-            <p class="text-xs text-slate-400">Phase 2: Fine-tune your metabolic engine targets</p>
-        </div>
+{% block header %}{% endblock %}
 
-        <div id="error-box"
-            class="hidden p-3.5 text-xs rounded-xl border bg-rose-500/10 text-rose-400 border-rose-500/20 transition-all duration-300">
-        </div>
+{% block footer %}{% endblock %}
 
-        <form id="onboarding-form" class="space-y-4">
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label
-                        class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Gender</label>
-                    <select id="gender"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                    </select>
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Date of
-                        Birth</label>
-                    <input type="date" id="date_of_birth" required
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-                </div>
-            </div>
+{% block content %}
+<div
+    class="w-full max-w-lg bg-slate-900/40 border border-slate-900 p-8 rounded-2xl backdrop-blur-sm shadow-2xl space-y-6">
 
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Current
-                        Height (cm)</label>
-                    <input type="number" id="height" required min="100" max="250" placeholder="180"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Target
-                        Weight (kg)</label>
-                    <input type="number" id="target_weight" required min="30" max="200" placeholder="75"
-                        class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
-                </div>
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Fitness
-                    Goal</label>
-                <select id="fitness_goal"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
-                    <option value="BULK">Muscle Gain (Bulk)</option>
-                    <option value="CUT">Fat Loss (Cut)</option>
-                    <option value="MAINTAIN">Maintenance</option>
-                </select>
-            </div>
-
-            <div>
-                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Experience
-                    Level</label>
-                <select id="experience_level"
-                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
-                    <option value="BEGINNER">Beginner (&lt; 1 year)</option>
-                    <option value="INTERMEDIATE">Intermediate (1-3 years)</option>
-                    <option value="ADVANCED">Advanced (3+ years)</option>
-                </select>
-            </div>
-
-            <button type="submit"
-                class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-emerald-500/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200 cursor-pointer text-sm mt-4">
-                Complete AI Engine Initialization ➔
-            </button>
-        </form>
+    <div class="flex flex-col items-center space-y-2 text-center">
+        <h2
+            class="text-2xl font-black tracking-wider bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent uppercase">
+            Biometric Profiles
+        </h2>
+        <p class="text-xs text-slate-400">Phase 2: Fine-tune your metabolic engine targets</p>
     </div>
 
-    <script>
-        // 1. Assign Django template variables with explicit empty fallbacks
-        const djangoAccessToken = "{{ access_token|default:'' }}";
-        const djangoRefreshToken = "{{ refresh_token|default:'' }}";
+    <div id="error-box"
+        class="hidden p-3.5 text-xs rounded-xl border bg-rose-500/10 text-rose-400 border-rose-500/20 transition-all duration-300">
+    </div>
 
-        // Renders as a pure JavaScript boolean true/false
-        const djangoOnboardingComplete = "{{ onboarding_complete|default:'false' }}".toLowerCase() === 'true';
-        // 2. Save them to sessionStorage if they were successfully passed
-        if (djangoAccessToken) {
-            sessionStorage.setItem('accessToken', djangoAccessToken);
-        }
-        if (djangoRefreshToken) {
-            sessionStorage.setItem('refreshToken', djangoRefreshToken);
-        }
+    <form id="onboarding-form" class="space-y-4">
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Gender</label>
+                <select id="gender"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
+                    <option value="Male">Male</option>
+                    <option value="Female">Female</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Date of
+                    Birth</label>
+                <input type="date" id="date_of_birth" required
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+            </div>
+        </div>
 
-        // 3. Verify authentication status and handle auto-redirection
-        const token = sessionStorage.getItem('accessToken');
-        if (!token) {
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Current
+                    Height (cm)</label>
+                <input type="number" id="height" required min="100" max="250" placeholder="180"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+            </div>
+            <div>
+                <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Target
+                    Weight (kg)</label>
+                <input type="number" id="target_weight" required min="30" max="200" placeholder="75"
+                    class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Fitness
+                Goal</label>
+            <select id="fitness_goal"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
+                <option value="BULK">Muscle Gain (Bulk)</option>
+                <option value="CUT">Fat Loss (Cut)</option>
+                <option value="MAINTAIN">Maintenance</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Experience
+                Level</label>
+            <select id="experience_level"
+                class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all cursor-pointer">
+                <option value="BEGINNER">Beginner (&lt; 1 year)</option>
+                <option value="INTERMEDIATE">Intermediate (1-3 years)</option>
+                <option value="ADVANCED">Advanced (3+ years)</option>
+            </select>
+        </div>
+
+        <button type="submit"
+            class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold py-3 px-4 rounded-xl shadow-lg hover:shadow-emerald-500/10 hover:brightness-110 active:scale-[0.98] transition-all duration-200 cursor-pointer text-sm mt-4">
+            Complete AI Engine Initialization ➔
+        </button>
+    </form>
+</div>
+
+<script>
+    // 1. Assign Django template variables with explicit empty fallbacks
+    const djangoAccessToken = "{{ access_token|default:'' }}";
+    const djangoRefreshToken = "{{ refresh_token|default:'' }}";
+
+    // Renders as a pure JavaScript boolean true/false
+    const djangoOnboardingComplete = "{{ onboarding_complete|default:'false' }}".toLowerCase() === 'true';
+    // 2. Save them to sessionStorage if they were successfully passed
+    if (djangoAccessToken) {
+        sessionStorage.setItem('accessToken', djangoAccessToken);
+    }
+    if (djangoRefreshToken) {
+        sessionStorage.setItem('refreshToken', djangoRefreshToken);
+    }
+
+    // 3. Verify authentication status and handle auto-redirection
+    const token = sessionStorage.getItem('accessToken');
+    if (!token) {
+        window.location.href = "{% url 'authentication:login' %}";
+    } else if (djangoOnboardingComplete) {
+        // Safe redirect: Storage is populated with the Google OAuth tokens, now go to dashboard!
+        window.location.href = "/api/workouts/dashboard/";
+    }
+
+    // 4. Handle Phase 2 Onboarding Form Submission
+    document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorBox = document.getElementById('error-box');
+        errorBox.classList.add('hidden');
+
+        // Always read the token dynamically from sessionStorage on submit
+        const activeToken = sessionStorage.getItem('accessToken');
+        if (!activeToken) {
             window.location.href = "{% url 'authentication:login' %}";
-        } else if (djangoOnboardingComplete) {
-            // Safe redirect: Storage is populated with the Google OAuth tokens, now go to dashboard!
-            window.location.href = "/api/workouts/dashboard/";
+            return;
         }
 
-        // 4. Handle Phase 2 Onboarding Form Submission
-        document.getElementById('onboarding-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const errorBox = document.getElementById('error-box');
-            errorBox.classList.add('hidden');
+        // Detect browser timezone string automatically (e.g. "Asia/Amman")
+        let clientTimezone = "Asia/Amman"; // Local fallback
+        try {
+            clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Amman";
+        } catch (tzError) {
+            console.warn("Timezone detection failed, fallback to default.");
+        }
 
-            // Always read the token dynamically from sessionStorage on submit
-            const activeToken = sessionStorage.getItem('accessToken');
-            if (!activeToken) {
-                window.location.href = "{% url 'authentication:login' %}";
-                return;
-            }
+        const payload = {
+            gender: document.getElementById('gender').value,
+            date_of_birth: document.getElementById('date_of_birth').value,
+            height: parseInt(document.getElementById('height').value),
+            target_weight: parseInt(document.getElementById('target_weight').value),
+            fitness_goal: document.getElementById('fitness_goal').value,
+            experience_level: document.getElementById('experience_level').value,
+            timezone: clientTimezone
+        };
 
-            // Detect browser timezone string automatically (e.g. "Asia/Amman")
-            let clientTimezone = "Asia/Amman"; // Local fallback
-            try {
-                clientTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || "Asia/Amman";
-            } catch (tzError) {
-                console.warn("Timezone detection failed, fallback to default.");
-            }
+        try {
+            const response = await fetch("/api/auth/register/phase-2/", {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${activeToken}`
+                },
+                body: JSON.stringify(payload)
+            });
 
-            const payload = {
-                gender: document.getElementById('gender').value,
-                date_of_birth: document.getElementById('date_of_birth').value,
-                height: parseInt(document.getElementById('height').value),
-                target_weight: parseInt(document.getElementById('target_weight').value),
-                fitness_goal: document.getElementById('fitness_goal').value,
-                experience_level: document.getElementById('experience_level').value,
-                timezone: clientTimezone
-            };
+            const data = await response.json();
 
-            try {
-                const response = await fetch("/api/auth/register/phase-2/", {
-                    method: "PATCH",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${activeToken}`
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await response.json();
-
-                if (response.ok) {
-                    // Finalize process and head directly to user dashboard
-                    window.location.href = "/api/workouts/dashboard/";
-                } else {
-                    let messages = [];
-                    for (const [key, value] of Object.entries(data)) {
-                        messages.push(`${key}: ${value}`);
-                    }
-                    errorBox.innerText = messages.join(' | ');
-                    errorBox.classList.remove('hidden');
+            if (response.ok) {
+                // Finalize process and head directly to user dashboard
+                window.location.href = "/api/workouts/dashboard/";
+            } else {
+                let messages = [];
+                for (const [key, value] of Object.entries(data)) {
+                    messages.push(`${key}: ${value}`);
                 }
-            } catch (err) {
-                errorBox.innerText = "Failed to synchronize parameters. Verify API availability status.";
+                errorBox.innerText = messages.join(' | ');
                 errorBox.classList.remove('hidden');
             }
-        });
-    </script>
-</body>
-
-</html>
+        } catch (err) {
+            errorBox.innerText = "Failed to synchronize parameters. Verify API availability status.";
+            errorBox.classList.remove('hidden');
+        }
+    });
+</script>
+{% endblock %}

@@ -8,7 +8,8 @@ from rest_framework.response import Response
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
-from .serializers import Phase1RegistrationSerializer, ProfileUpdateSerializer, CustomTokenObtainPairSerializer
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from .serializers import Phase1RegistrationSerializer, ProfileUpdateSerializer, ProfileAccountSerializer, CustomTokenObtainPairSerializer
 from django.contrib.auth import login, logout, get_user_model, authenticate
 from .models import Profile, User
 from django.contrib.auth.models import User
@@ -16,7 +17,9 @@ import traceback
 from django.contrib.auth.backends import ModelBackend
 from django.db.models import Q
 from django.contrib import messages
+from rest_framework.authentication import SessionAuthentication
 from .utils import signer, TOKEN_MAX_AGE, SignatureExpired, BadSignature, send_verification_email
+from allauth.socialaccount.models import SocialAccount
 
 def login_page(request):
     """Renders the login page template for the web interface."""
@@ -25,6 +28,8 @@ def login_page(request):
 def signup_page(request):
     """Renders the signup page template for the web interface."""
     return render(request, 'authentication/signup.html')
+from django.urls import reverse
+from django.contrib.auth.decorators import login_required
 
 def onboarding_page(request):
     # 1. If the user isn't logged in at all, kick them to login
@@ -137,6 +142,51 @@ class ProfileUpdateAPIView(APIView):
             }, status=status.HTTP_200_OK)
             
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ProfileSettingsAPIView(APIView):
+    """Reads and updates the signed-in user's account credentials and profile metrics."""
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def _get_serializer_context(self, request):
+        social_accounts = SocialAccount.objects.filter(user=request.user)
+        return {
+            'request': request,
+            'is_oauth_user': social_accounts.exists(),
+        }
+
+    def get(self, request):
+        serializer = ProfileAccountSerializer(request.user, context=self._get_serializer_context(request))
+        social_accounts = SocialAccount.objects.filter(user=request.user)
+        oauth_provider = social_accounts.first().provider if social_accounts.exists() else ''
+
+        return Response({
+            'profile': serializer.data,
+            'is_oauth_user': social_accounts.exists(),
+            'oauth_provider': oauth_provider,
+        }, status=status.HTTP_200_OK)
+
+    def patch(self, request):
+        serializer = ProfileAccountSerializer(
+            request.user,
+            data=request.data,
+            partial=True,
+            context=self._get_serializer_context(request),
+        )
+
+        if serializer.is_valid():
+            serializer.save()
+            social_accounts = SocialAccount.objects.filter(user=request.user)
+            oauth_provider = social_accounts.first().provider if social_accounts.exists() else ''
+            return Response({
+                'message': 'Profile updated successfully.',
+                'profile': serializer.data,
+                'is_oauth_user': social_accounts.exists(),
+                'oauth_provider': oauth_provider,
+            }, status=status.HTTP_200_OK)
+
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 class LoginAPIView(TokenObtainPairView):
     """
@@ -184,6 +234,20 @@ class LoginAPIView(TokenObtainPairView):
                 samesite=JWT_SETTINGS.get('AUTH_COOKIE_SAMESITE', 'Lax')
             )
         return response
+
+
+@login_required(login_url='/auth/login/')
+def profile_page(request):
+    profile = request.user.profile
+    social_accounts = SocialAccount.objects.filter(user=request.user)
+    oauth_provider = social_accounts.first().provider if social_accounts.exists() else ''
+
+    return render(request, 'authentication/profile.html', {
+        'profile': profile,
+        'is_oauth_user': social_accounts.exists(),
+        'oauth_provider': oauth_provider,
+        'password_reset_url': reverse('password_reset'),
+    })
 
 
 class ProductionTokenRefreshAPIView(TokenRefreshView):
