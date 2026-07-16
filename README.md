@@ -23,6 +23,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Expanded the profile schema to support demographic tracking fields including tracking **Gender** to drive highly personalized baseline physiological coaching recommendations.
 - Robust Hybrid Authentication: Implemented a secure, hybrid authentication system that reconciles Django session-based security (for template-rendered pages) with JWT-based authentication (for API/WebSocket workflows). This includes dynamic secure-cookie handling, server-side **@login_required** route protection, and seamless token persistence via silent refresh patterns.
 - **Seamless Google OAuth & Biometric Onboarding Integration**: Successfully implemented Google OAuth 2.0 social sign-ups. Standardized the transition between social authentication and biometric initialization by routing Google users through Phase 2 onboarding, while preserving security tokens client-side.
+- **Interactive Profile Management**: A centralized settings hub where users can view and edit their account credentials and biometric data. The page features a dynamic, state-aware interface that handles secure asynchronous updates, enforces OAuth-specific constraints for social accounts, and automatically manages re-verification workflows when sensitive contact information is modified.
 
 ### 2. Unified Video Upload and Cloud Storage Pipeline
 
@@ -90,6 +91,10 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - AWS S3 for workout video persistence
 - Presigned URLs for secure media access
 - Media handling prepared for future mobile-first delivery
+
+### UI/UX
+
+- Standardized UI/UX architecture using base.html template inheritance across all workout and profile pages.
 
 ---
 
@@ -159,6 +164,9 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Cryptographic token tokenization and verification routing logic (`is_email_verified`).
 - Session-based template routing optimization bypasses allowing public landing page layout access.
 - **Google OAuth Login & Sign-up Flow**: Connected and verified Google social logins, matching automated Django database signals, dynamic token caching, and automated redirection workflows.
+- Refactored workout and dashboard templates using base.html inheritance for a consistent global layout.
+
+- Completed 3-phase profile settings build, including secure API-driven updates, OAuth state protection, and biometric data management.
 
 ### In Progress / Active Focus
 
