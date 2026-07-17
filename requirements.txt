@@ -11,6 +11,7 @@ cbor2==6.1.2
 certifi==2026.6.17
 cffi==2.0.0
 channels==4.3.2
+channels_redis==4.3.0
 charset-normalizer==3.4.7
 constantly==23.10.4
 cryptography==49.0.0
@@ -44,6 +45,7 @@ PyJWT==2.13.0
 pyOpenSSL==26.3.0
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+redis==8.0.1
 requests==2.34.2
 s3transfer==0.10.4
 service-identity==26.1.0
