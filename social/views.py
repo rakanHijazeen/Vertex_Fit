@@ -1,6 +1,7 @@
-from django.shortcuts import get_object_or_404
+from django.shortcuts import render, get_object_or_404
 from django.db.models import Q
 from django.contrib.auth import get_user_model
+from django.contrib.auth.decorators import login_required
 from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -9,6 +10,14 @@ from .models import Friendship, Thread, Message
 from .serializers import FriendshipSerializer, MessageSerializer, ThreadSerializer
 
 User = get_user_model()
+
+@login_required
+def chat_test_room(request, thread_uuid):
+    """
+    Renders a simple HTML testing template to execute live WebSocket operations
+    against a target chat thread room.
+    """
+    return render(request, 'social/chat_test.html', {'thread_uuid': thread_uuid})
 
 class FriendshipViewSet(viewsets.ViewSet):
     """ViewSet for managing friendship requests and relationships."""

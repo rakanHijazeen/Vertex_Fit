@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vertex Fit Chat Test</title>
+    <style>
+        body { font-family: sans-serif; margin: 30px; background: #121212; color: #e0e0e0; }
+        #chat-log { width: 100%; height: 300px; background: #1e1e1e; border: 1px solid #333; overflow-y: scroll; padding: 10px; margin-bottom: 10px; border-radius: 6px; }
+        #chat-message-input { width: 80%; padding: 10px; background: #2d2d2d; border: 1px solid #444; color: #fff; border-radius: 4px; }
+        #chat-message-submit { padding: 10px 20px; background: #007bff; border: none; color: white; cursor: pointer; border-radius: 4px; }
+        .message { margin-bottom: 8px; padding: 6px; border-radius: 4px; background: #2a2a2a; }
+    </style>
+</head>
+<body>
+    <h2>Room Thread UUID: <span style="color: #007bff;">{{ thread_uuid }}</span></h2>
+    <p>Logged in as: <strong>{{ request.user.username }}</strong></p>
+
+    <div id="chat-log"></div>
+    <input id="chat-message-input" type="text" placeholder="Type a real-time message..."><br><br>
+    <input id="chat-message-submit" type="button" value="Send Live Packet">
+
+    <!-- Pass the dynamic thread UUID from Django context safely to JavaScript -->
+    {{ thread_uuid|json_script:"thread-uuid" }}
+
+    <script>
+        const threadUuid = JSON.parse(document.getElementById('thread-uuid').textContent);
+        
+        // Build the WebSocket protocol target URL path dynamically
+        const wsScheme = window.location.protocol === "https:" ? "wss://" : "ws://";
+        const chatSocket = new WebSocket(
+            wsScheme + window.location.host + '/ws/social/chat/' + threadUuid + '/'
+        );
+
+        // Append incoming messages directly to the UI box layout
+        chatSocket.onmessage = function(e) {
+            const data = JSON.parse(e.data);
+            const chatLog = document.getElementById('chat-log');
+            
+            const msgDiv = document.createElement('div');
+            msgDiv.className = 'message';
+            msgDiv.innerHTML = `<strong>${data.sender.username}:</strong> ${data.text}`;
+            
+            chatLog.appendChild(msgDiv);
+            chatLog.scrollTop = chatLog.scrollHeight; // Auto-scroll to latest message
+        };
+
+        chatSocket.onclose = function(e) {
+            console.error('Chat socket closed unexpectedly. Code:', e.code);
+            alert('WebSocket disconnected. Status code: ' + e.code);
+        };
+
+        document.getElementById('chat-message-input').focus();
+        document.getElementById('chat-message-input').onkeyup = function(e) {
+            if (e.keyCode === 13) {  // Enter key trigger
+                document.getElementById('chat-message-submit').click();
+            }
+        };
+
+        document.getElementById('chat-message-submit').onclick = function(e) {
+            const messageInputDom = document.getElementById('chat-message-input');
+            const message = messageInputDom.value;
+            
+            // Push payload over the live WebSocket channel
+            chatSocket.send(JSON.stringify({
+                'message': message
+            }));
+            
+            messageInputDom.value = '';
+        };
+    </script>
+</body>
+</html>

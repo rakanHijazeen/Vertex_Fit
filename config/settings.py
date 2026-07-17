@@ -248,6 +248,19 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_SAMESITE': 'Lax',                    # Mitigates CSRF attack surfaces
 }
 
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [
+                {
+                    "address": "redis://127.0.0.1:6379/0", # Local Redis instance for development; replace with production Redis URL in live deployments
+                    "socket_timeout": None,
+                 }
+            ], 
+        },
+    },
+}
 # AWS S3 Settings Configuration
 AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
