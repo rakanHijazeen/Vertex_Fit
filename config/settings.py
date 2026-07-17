@@ -248,13 +248,16 @@ SIMPLE_JWT = {
     'AUTH_COOKIE_SAMESITE': 'Lax',                    # Mitigates CSRF attack surfaces
 }
 
+REDIS_URL = os.environ.get('REDIS_URL', 'redis://127.0.0.1:6379/0')
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
             "hosts": [
                 {
-                    "address": "redis://127.0.0.1:6379/0", # Local Redis instance for development; replace with production Redis URL in live deployments
+                    "host": os.environ.get('REDIS_HOST', '127.0.0.1'),
+                    "port": int(os.environ.get('REDIS_PORT', 6379)),
                     "socket_timeout": None,
                  }
             ], 
