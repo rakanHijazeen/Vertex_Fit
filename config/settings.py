@@ -15,6 +15,7 @@ from pathlib import Path
 from dotenv import load_dotenv
 from datetime import timedelta
 
+
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -60,6 +61,7 @@ INSTALLED_APPS = [
     'authentication',
     'workouts',
     'background_task',
+    'social.apps.SocialConfig',
 ]
 
 # Required for django.contrib.sites
