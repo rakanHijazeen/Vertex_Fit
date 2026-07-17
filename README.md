@@ -66,6 +66,14 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - **Persistent Chat History & Session Caching**: Built a historical message recovery system using a dedicated REST API endpoint (`/api/workouts/chat/history/<thread_id>/`) paired with client-side `localStorage` caching to persist user thread IDs seamlessly across page refreshes.
 - **Asynchronous Dual-Layer Communication**: Integrated WebSocket state machines to keep user chat workflows dynamic, real-time, and light on database threads.
 
+### 7. Social Networking & Real-Time Chat Infrastructure
+
+- **Robust Relationship Architecture**: Implemented a self-referencing `Friendship` model featuring unique database constraints and state indexing to optimize friendship requests, confirmations, and list queries.
+- **Conflict-Free Messaging Engine**: Built a UUID-based direct `Thread` model utilizing explicit `social_direct_threads` relations to completely bypass potential naming clashes with the workouts module. This is paired with an indexed `Message` model designed for accelerated historical text search and retrieval.
+- **Comprehensive Social & History REST APIs**: Rolled out dedicated serializers handling user summaries, relational statuses, and chat threads. Extended this to `MessageSerializer` to process live payloads alongside historical chat backlogs seamlessly.
+- **Dynamic Social ViewSets**: Developed `FriendshipViewSet` exposing custom actions for managing user requests (`request`, `respond`, and listings) and `ChatThreadViewSet` to stream granular thread states and chat logs.
+- **Secure Real-Time WebSocket Layer**: Engineered an `AsyncWebsocketConsumer` within the `social` app featuring a strict session authentication gate, thread membership validation checks, and asynchronous-to-synchronous database persistence workers for real-time messages.
+
 ---
 
 ## 🧱 Current Architecture
@@ -74,7 +82,8 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 
 - Django 5
 - Django REST Framework
-- Django Channels + Daphne for websocket support
+- Django Channels + Daphne for websocket support (Live Coaching & Social Chat layers)
+- **Redis** as the backing store / Channel Layer for real-time WebSocket communication
 - PostgreSQL for relational data storage
 - Background task processing for async AI analysis
 
@@ -140,6 +149,12 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Gemini Live session orchestration with phase-based state handling
 - Audio feedback playback for generated coaching responses
 
+### Social & Real-Time Direct Messaging
+
+- **Relational Integrity**: Self-referencing unique constraint logic preventing duplicate friendship records, supported by optimized state indexes (`social/models.py`).
+- **REST Gateway**: Viewsets decoupling social management (`FriendshipViewSet`) from message querying (`ChatThreadViewSet`), enabling fast historical backlogs.
+- **Channels Infrastructure**: Production-ready asynchronous messaging consumers integrated directly via `social/routing.py` and combined inside the master `config/asgi.py` routing tables.
+- **Serialization Sanitization**: Resolved strict Django Channels and `msgpack` type boundaries by normalizing JSON/UUID serialization mismatches inside live websocket payload deliveries.
 ---
 
 ## 📊 Project Status
@@ -165,8 +180,10 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Session-based template routing optimization bypasses allowing public landing page layout access.
 - **Google OAuth Login & Sign-up Flow**: Connected and verified Google social logins, matching automated Django database signals, dynamic token caching, and automated redirection workflows.
 - Refactored workout and dashboard templates using base.html inheritance for a consistent global layout.
-
 - Completed 3-phase profile settings build, including secure API-driven updates, OAuth state protection, and biometric data management.
+- **Social Framework & Models**: Created index-backed `Friendship`, `Thread`, and `Message` data structures avoiding cross-app naming issues.
+- **Social REST Endpoints**: Implemented custom endpoint bindings for handling friendship state machines and streaming historical chat logs.
+- **WebSocket Direct Chat Layer**: Successfully wired Django Channels routing with session authorization gates and async-to-sync database message persistence workers.
 
 ### In Progress / Active Focus
 
@@ -184,6 +201,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - Django REST Framework
 - Django Channels
 - Daphne
+- **Redis**
 - PostgreSQL
 - boto3 / botocore
 - Google Gemini APIs
