@@ -48,6 +48,9 @@ urlpatterns = [
     # Connect the Workouts App routing (Handles both API endpoints and the HTML Tracker)
     path('api/workouts/', include('workouts.urls')),
 
+    # Connect the Social App routing (Handles both API endpoints and the HTML Chat)
+    path('api/social/', include('social.urls')),
+
     # Backend Authentication Engine Endpoints
     path('api/auth/register/phase-1/', RegistrationAPIView.as_view(), name='auth_register_phase_1'), # 3. Replaced old endpoint
     path('api/auth/register/phase-2/', ProfileUpdateAPIView.as_view(), name='auth_register_phase_2'), # 4. Added phase 2 PATCH endpoint

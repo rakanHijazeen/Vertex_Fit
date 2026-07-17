@@ -227,13 +227,14 @@ LOGOUT_REDIRECT_URL = '/'
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     )
 }
 
 # SimpleJWT configuration matrix
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(minutes=15),   # Short lifespan for security
-    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),     # Long lifespan for user persistence
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),      # Long lifespan for user persistence
     'ROTATE_REFRESH_TOKENS': True,                    # Issue a fresh refresh token when used
     'BLACKLIST_AFTER_ROTATION': True,                 # Prevent reuse of older refresh tokens
     'UPDATE_LAST_LOGIN': True,
