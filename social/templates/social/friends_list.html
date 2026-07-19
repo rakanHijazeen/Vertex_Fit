@@ -1,0 +1,196 @@
+{% extends 'base.html' %}
+{% block title %}Vertex Social - Network Hub{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(16,185,129,0.08),_transparent_25%)] py-8">
+    <div class="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Search and Actions Panel -->
+        <div class="lg:col-span-4 space-y-6">
+            <div class="bg-slate-900/45 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-sm shadow-xl">
+                <p class="text-xs uppercase tracking-widest text-emerald-400 font-semibold mb-1">Add Athletes</p>
+                <h3 class="text-xl font-black text-white mb-4">Network Growth</h3>
+                
+                <form id="hub-request-form" class="space-y-3">
+                    <input type="text" id="hub-target-username" placeholder="Search exact training username..." required
+                           class="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 transition-all">
+                    <button type="submit" class="w-full bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-bold py-3 rounded-xl text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all">
+                        Transmit Invitation ➔
+                    </button>
+                </form>
+                <div id="hub-request-status" class="mt-3 text-xs font-mono hidden"></div>
+            </div>
+        </div>
+
+        <!-- Connections Display Container -->
+        <div class="lg:col-span-8 bg-slate-900/45 border border-slate-800/80 rounded-3xl p-6 backdrop-blur-sm shadow-xl min-h-[400px] flex flex-col">
+            <div class="border-b border-slate-800 pb-4 mb-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs uppercase tracking-widest text-slate-500 font-mono">Verified Social Connections</p>
+                    <h3 class="text-xl font-extrabold text-white mt-0.5">Active Network Circle</h3>
+                </div>
+                <span id="hub-friend-count" class="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono px-3 py-1 rounded-full">0 Active</span>
+            </div>
+
+            <div id="hub-friends-grid" class="grid grid-cols-1 md:grid-cols-2 gap-4 flex-1 items-start">
+                <p class="text-slate-500 text-xs font-mono">Parsing connections parameters...</p>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+    const userSessionName = "{{ user.username }}";
+
+    async function getSocialToken() {
+        const storedToken = sessionStorage.getItem('accessToken');
+        if (storedToken) {
+            return storedToken;
+        }
+
+        try {
+            const refreshResponse = await fetch('/api/auth/refresh/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include'
+            });
+
+            if (refreshResponse.ok) {
+                const data = await refreshResponse.json();
+                if (data.access) {
+                    sessionStorage.setItem('accessToken', data.access);
+                    return data.access;
+                }
+            }
+        } catch (error) {
+            console.warn('Social token fetch failed:', error);
+        }
+        return null;
+    }
+    document.getElementById('hub-request-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const input = document.getElementById('hub-target-username');
+        const box = document.getElementById('hub-request-status');
+        // 1. Fetch the active JWT token
+        const token = await getSocialToken();
+
+        // 2. Build the secure header payload
+        const headers = {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        };
+
+        // 3. Inject Bearer token if it exists to pass DRF authentication gates
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        try {
+            const res = await fetch('/api/social/friends/request/', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ username: input.value.trim() })
+            });
+            
+            const data = await res.json();
+            box.classList.remove('hidden', 'text-rose-400', 'text-emerald-400');
+            
+            if (res.ok) {
+                box.classList.add('text-emerald-400');
+                box.innerText = "Request successfully routed to target.";
+                input.value = '';
+            } else {
+                box.classList.add('text-rose-400');
+                box.innerText = data.error || data.detail || "Execution failed.";
+            }
+        } catch(err) { 
+            console.error(err); 
+            box.classList.remove('hidden');
+            box.classList.add('text-rose-400');
+            box.innerText = "Connection error while processing request.";
+        }
+    });
+
+    async function fetchCircle() {
+    try {
+        // 1. Fetch active JWT token from storage to pass REST framework authentication guards
+        const token = sessionStorage.getItem('accessToken');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) {
+            headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const res = await fetch('/api/social/friends/list/', { headers: headers });
+        if (!res.ok) return;
+        const friendships = await res.json();
+        
+        const grid = document.getElementById('hub-friends-grid');
+        const count = document.getElementById('hub-friend-count');
+        grid.innerHTML = '';
+
+        // Filter accepted records cleanly
+        const activeCircle = friendships.filter(f => f.status === 'accepted');
+        count.innerText = `${activeCircle.length} Active`;
+
+        if (activeCircle.length === 0) {
+            grid.innerHTML = `<p class="text-slate-600 text-xs font-mono col-span-2 py-4">// No verified training connections found.</p>`;
+            return;
+        }
+
+        activeCircle.forEach(f => {
+            // Read identity string out of your peer variable structure safely
+            const currentSessionUser = (typeof userSessionName !== 'undefined') ? userSessionName : "{{ user.username }}";
+            const peer = f.sender.username.toLowerCase() === currentSessionUser.toLowerCase() ? f.receiver : f.sender;
+            
+            const card = document.createElement('div');
+            card.className = "bg-slate-950 border border-slate-800 p-4 rounded-2xl flex items-center justify-between hover:border-slate-700 transition-all";
+            card.innerHTML = `
+                <div class="flex items-center space-x-3">
+                    <div class="h-9 w-9 bg-slate-900 rounded-xl flex items-center justify-center font-bold text-slate-400 border border-slate-800">${peer.username[0].toUpperCase()}</div>
+                    <div>
+                        <h4 class="text-sm font-bold text-white">${peer.username}</h4>
+                        <p class="text-[10px] font-mono text-slate-500">Athlete Status: Online</p>
+                    </div>
+                </div>
+                <!-- Fix: Point directly to your active messaging/suite route path -->
+                <a href="/social/messaging/suite/?target=${peer.username}" class="bg-slate-900 hover:border-emerald-500/30 border border-slate-800 text-slate-300 hover:text-emerald-400 font-bold px-3 py-1.5 rounded-xl text-xs transition-all">Chat ➔</a>            `;
+            grid.appendChild(card);
+        });
+    } catch(err) { 
+        console.error("Circle processing error:", err); 
+    }
+}
+    window.addEventListener('DOMContentLoaded', fetchCircle);
+
+    window.navigateToDirectChat = async function(targetUsername) {
+    try {
+        const token = sessionStorage.getItem('accessToken');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = `Bearer ${token}`;
+
+        // 1. Fetch all active threads the user belongs to
+        const res = await fetch('/api/social/chat/threads/', { headers: headers });
+        if (!res.ok) throw new Error("Could not retrieve conversations.");
+        
+        const threads = await res.json();
+
+        // 2. Scan for a direct message thread containing the target friend
+        const matchingThread = threads.find(t => {
+            if (t.is_group) return false; // Exclude group channels if any
+            return t.participants.some(p => p.username.toLowerCase() === targetUsername.toLowerCase());
+        });
+
+        if (matchingThread && matchingThread.id) {
+            // 3. Redirect perfectly to your direct chat suite using the thread UUID
+            window.location.href = `/social/chat/${matchingThread.id}/`;
+        } else {
+            alert("No active chat room found. Try sending a message from your message dashboard to initialize it.");
+        }
+    } catch (err) {
+        console.error("Redirection pipeline broken:", err);
+        alert("Unable to open chat workspace at this time.");
+    }
+};
+</script>
+{% endblock %}

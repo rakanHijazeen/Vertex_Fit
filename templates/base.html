@@ -71,8 +71,7 @@
                 <a href="{% url 'workout_dashboard' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'workout_dashboard' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Dashboard</a>
                 <!-- Active state logic for AI Chat -->
                 <a href="{% url 'ai_chat_coach' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'ai_chat_coach' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">AI Chat</a>
-                <a href="{% url 'token_blacklist' %}" class="logout-link text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors">Sign Out</a>
-            {% else %}
+                <button onclick="executeSignOut(event)" class="cursor-pointer text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors">Sign Out</button>            {% else %}
                 <!-- Landing Page Navigation -->
                 <a href="#features" class="text-sm font-medium text-slate-400 hover:text-emerald-400">Features</a>
                 <a href="#how-it-works" class="text-sm font-medium text-slate-400 hover:text-emerald-400">How It Works</a>
@@ -80,9 +79,40 @@
             {% endif %}
         </nav>
 
-        <!-- Authentication & Profile Controls -->
-        <div class="flex items-center space-x-4">
+        <!-- Authentication & Profile Controls with Dynamic Notification Badge -->
+        <div class="flex items-center space-x-4 relative">
             {% if user.is_authenticated %}
+                <!-- Notification Dropdown Wrapper -->
+                <div class="relative" id="notification-wrapper">
+                    <button id="noti-bell-btn" type="button"
+                            class="relative p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                        </svg>
+                        <!-- Dynamic Request Counter Badge -->
+                        <span id="noti-badge" class="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-rose-500 text-[10px] font-black text-white flex items-center justify-center hidden">0</span>
+                    </button>
+
+                    <!-- Dropdown Menu Box -->
+                    <div id="noti-dropdown" class="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-4 hidden z-50 space-y-3">
+                        <div class="text-xs font-bold text-white border-b border-slate-800 pb-2 flex justify-between items-center">
+                            <span>Friend Invitations</span>
+                            <a href="{% url 'social_dashboard' %}" class="text-emerald-400 text-xxs hover:underline">Manage All</a>
+                        </div>
+                        <div id="noti-requests-list" class="space-y-2 max-h-48 overflow-y-auto pr-1 text-xxs font-mono text-slate-500">
+                            No active inbound requests.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Standalone Messaging Center Route Link Button -->
+                <a href="{% url 'direct_chat_suite' %}" 
+                class="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 transition-all"
+                title="Open Independent Messages Center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                    </svg>
+                </a>
                 <!-- Logged In: Profile Icon -->
                 <a href="{% url 'profile_page' %}" 
                    class="flex items-center justify-center h-10 w-10 rounded-full bg-slate-900 border border-slate-800 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/50 hover:bg-slate-800 transition-all group" 
@@ -100,6 +130,122 @@
                 </a>
             {% endif %}
         </div>
+        <!-- Global Async Notifications Controller Script -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const bellBtn = document.getElementById('noti-bell-btn');
+                const dropdown = document.getElementById('noti-dropdown');
+                if (!bellBtn) return;
+
+                // Establish the active user parameter from Django context securely
+                const userSessionIdentity = "{{ user.username }}";
+
+                bellBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                });
+
+                document.addEventListener('click', () => dropdown.classList.add('hidden'));
+                dropdown.addEventListener('click', (e) => e.stopPropagation());
+
+                // Dynamic API Fetch to parse inbound items
+                async function fetchLiveRequests() {
+                    try {
+                        // Pull active JWT token out of storage to pass REST framework authentication guards
+                        const token = sessionStorage.getItem('accessToken');
+                        const headers = { 'Content-Type': 'application/json' };
+                        if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
+
+                        const res = await fetch('/api/social/friends/list/', { headers: headers });
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        
+                        // Filter: Only display items that are 'pending' AND where the current user is NOT the sender
+                        const pendingInbound = data.filter(f => {
+                            if (f.status !== 'pending') return false;
+                            
+                            // Handle both nested object shapes and flat serializer field alternatives
+                            let senderName = "";
+                            if (f.sender && typeof f.sender === 'object') {
+                                senderName = f.sender.username;
+                            } else if (f.sender_username) {
+                                senderName = f.sender_username;
+                            } else {
+                                senderName = f.sender; 
+                            }
+                            
+                            // It's inbound if someone else sent it to us
+                            return senderName && senderName.toLowerCase() !== userSessionIdentity.toLowerCase();
+                        }); 
+
+                        const badge = document.getElementById('noti-badge');
+                        const listContainer = document.getElementById('noti-requests-list');
+
+                        if (pendingInbound.length > 0) {
+                            badge.innerText = pendingInbound.length;
+                            badge.classList.remove('hidden');
+                            listContainer.innerHTML = '';
+                            
+                            pendingInbound.forEach(req => {
+                                // Safely extract the structural sender name string values
+                                const senderName = (req.sender && req.sender.username) 
+                                    ? req.sender.username 
+                                    : (req.sender_username || "Athlete");
+
+                                const row = document.createElement('div');
+                                row.className = "flex items-center justify-between bg-slate-950 p-2 rounded-xl border border-slate-800 gap-2";
+                                row.innerHTML = `
+                                    <span class="text-white font-bold text-xs truncate max-w-[140px]">${senderName}</span>
+                                    <div class="flex gap-1 shrink-0">
+                                        <button onclick="respondRequest(${req.id}, 'accept')" class="bg-emerald-500 text-black px-2 py-0.5 rounded font-bold hover:brightness-110 text-xs">✓</button>
+                                        <button onclick="respondRequest(${req.id}, 'decline')" class="bg-rose-500 text-white px-2 py-0.5 rounded font-bold hover:brightness-110 text-xs">×</button>
+                                    </div>
+                                `;
+                                listContainer.appendChild(row);
+                            });
+                        } else {
+                            badge.classList.add('hidden');
+                            listContainer.innerHTML = '<div class="text-slate-500 text-center py-1 text-xs font-mono">// No inbound requests.</div>';
+                        }
+                    } catch(err) { 
+                        console.error("Notification pull failed:", err); 
+                    }
+                }
+
+                window.respondRequest = async function(friendshipId, actionChoice) {
+                    try {
+                        const token = sessionStorage.getItem('accessToken');
+                        const headers = {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        };
+                        if (token) {
+                            headers['Authorization'] = `Bearer ${token}`;
+                        }
+
+                        const response = await fetch('/api/social/friends/respond/', {
+                            method: 'POST',
+                            headers: headers,
+                            body: JSON.stringify({ friendship_id: friendshipId, action: actionChoice })
+                        });
+                        
+                        if (response.ok) {
+                            fetchLiveRequests();
+                            // If your active window context is the network hub page, update that list grid too
+                            if (typeof fetchCircle === 'function') fetchCircle();
+                        }
+                    } catch(err) { 
+                        console.error(err); 
+                    }
+                };
+
+                // Initialize and schedule background tasks
+                fetchLiveRequests();
+                setInterval(fetchLiveRequests, 20000); 
+            });
+        </script>
     </header>
     {% endblock %}
 
@@ -359,6 +505,39 @@
     </footer>
     {% endblock %}
 
+    <!-- Auth State Termination Script -->
+<script>
+    async function executeSignOut(event) {
+        if (event) event.preventDefault();
+        
+        try {
+            const token = sessionStorage.getItem('accessToken');
+            const headers = { 
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            };
+            
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            // Explicitly execute the required POST handshake to blacklist the active session tokens
+            await fetch("{% url 'token_blacklist' %}", {
+                method: 'POST',
+                headers: headers
+            });
+        } catch (err) {
+            console.error("Session removal encountered an interface error:", err);
+        } finally {
+            // Drop client session credentials completely to finalize logout state
+            sessionStorage.removeItem('accessToken');
+            sessionStorage.removeItem('refreshToken');
+
+            // Redirect smoothly back to the traditional HTTP login layout form view
+            window.location.href = "/auth/login/";
+        }
+    }
+</script>
 </body>
 
 </html>

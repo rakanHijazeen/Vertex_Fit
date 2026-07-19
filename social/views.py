@@ -12,12 +12,31 @@ from .serializers import FriendshipSerializer, MessageSerializer, ThreadSerializ
 User = get_user_model()
 
 @login_required
-def chat_test_room(request, thread_uuid):
+def social_dashboard_view(request):
     """
-    Renders a simple HTML testing template to execute live WebSocket operations
-    against a target chat thread room.
+    Renders the dedicated social circle hub (templates/social/friends_list.html).
+    All friends parsing and search queries are offloaded to async fetch endpoints.
     """
-    return render(request, 'social/chat_test.html', {'thread_uuid': thread_uuid})
+    return render(request, 'social/friends_list.html')
+
+@login_required
+def direct_chat_suite_view(request, thread_uuid=None):
+    """
+    Renders the isolated full-height messaging workspace.
+    Optionally accepts a thread_uuid directly to trigger an auto-connection pipeline.
+    """
+    context = {
+        'initial_thread_uuid': str(thread_uuid) if thread_uuid else ''
+    }
+    return render(request, 'social/messages_suite.html', context)
+
+# @login_required
+# def chat_test_room(request, thread_uuid):
+#     """
+#     Renders a simple HTML testing template to execute live WebSocket operations
+#     against a target chat thread room.
+#     """
+#     return render(request, 'social/chat_test.html', {'thread_uuid': thread_uuid})
 
 class FriendshipViewSet(viewsets.ViewSet):
     """ViewSet for managing friendship requests and relationships."""
@@ -85,11 +104,12 @@ class FriendshipViewSet(viewsets.ViewSet):
     @action(detail=False, methods=['get'], url_path='list')
     def list_friends(self, request):
         """GET /api/social/friends/list/"""
-        # Fetch relationships where current user is either sender or receiver and status is accepted
+        # Fetch relationships where current user is either sender or receiver
+        # AND the relationship is either active ('accepted') or waiting confirmation ('pending')
         friendships = Friendship.objects.filter(
-            (Q(sender=request.user) | Q(receiver=request.user)),
-            status='accepted'
-        ).select_related('sender', 'receiver')  # Optimization: Join tables to prevent N+1 hits
+            Q(sender=request.user) | Q(receiver=request.user),
+            status__in=['accepted', 'pending']
+        ).select_related('sender', 'receiver')
 
         serializer = FriendshipSerializer(friendships, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -99,25 +119,42 @@ class ChatThreadViewSet(viewsets.ViewSet):
     """ViewSet for managing chat threads and message history."""
     permission_classes = [permissions.IsAuthenticated]
 
-    @action(detail=False, methods=['get'], url_path='threads')
-    def list_threads(self, request):
-        """GET /api/social/chat/threads/"""
+    def create(self, request):
+        """
+        POST /api/social/chat/
+        NOTE: Since this is registered to a router, the default base URL for 
+        creating an item is the root path of the endpoint, NOT /threads/.
+        """
+        target_username = request.data.get('username')
+        if not target_username:
+            return Response({"error": "Target username required"}, status=status.HTTP_400_BAD_REQUEST)
+            
+        target_user = get_object_or_404(User, username__iexact=target_username)
+        
+        # Check if a 1-on-1 thread already exists between these users
+        thread = Thread.objects.filter(is_group=False, participants=request.user).filter(participants=target_user).first()
+        
+        if not thread:
+            thread = Thread.objects.create(is_group=False)
+            thread.participants.set([request.user, target_user])
+            
+        serializer = ThreadSerializer(thread)
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    
+    def list(self, request):
+        """
+        GET /api/social/chat/
+        Replaces the old @action(url_path='threads') with DRF's native list handler.
+        """
         threads = Thread.objects.filter(participants=request.user).prefetch_related('participants', 'messages').order_by('-updated_at')
         serializer = ThreadSerializer(threads, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
-    # This endpoint retrieves the last 50 messages in a specific chat thread, ensuring the requesting user is a participant.
     @action(detail=True, methods=['get'], url_path='history')
     def get_chat_history(self, request, pk=None):
         """GET /api/social/chat/<thread_uuid>/history/"""
-        # Ensure the requesting user belongs to the conversation room
         thread = get_object_or_404(Thread, id=pk, participants=request.user)
-        
-        # Pull the last 50 historical messages
-        # Optimization: We already indexed ('thread', 'created_at') in our model!
         messages = Message.objects.filter(thread=thread).order_by('-created_at')[:50]        
-        
-        # Reverse them so they show up in standard chronological order (oldest to newest)
         messages = list(reversed(messages))
         
         serializer = MessageSerializer(messages, many=True)

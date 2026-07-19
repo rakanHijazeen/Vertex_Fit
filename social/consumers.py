@@ -88,7 +88,33 @@ class RealTimeChatConsumer(AsyncWebsocketConsumer):
         Pushes the serialized message payload straight to the client browser.
         """
         payload = event["message_payload"]
-        await self.send(text_data=json.dumps(payload))
+        # Extract values safely from your database serializer structure
+        text_content = payload.get("text", "")
+        sender_data = payload.get("sender", {})
+
+        # Normalize the sender payload structure if it's nested or a raw primitive
+        if isinstance(sender_data, dict):
+            username = sender_data.get("username", self.user.username)
+        else:
+            username = str(sender_data)
+
+        # Build a dual-compatible payload containing BOTH key shapes
+        # This prevents breaking changes if you mix match testing suites and production panels
+        response_data = {
+            # Old UI test shape fallback
+            "text": text_content, 
+            
+            # New production UI frame shape
+            "message": text_content, 
+            
+            # Formatted sender object structure
+            "sender": {
+                "username": username
+            }
+        }
+
+        # Transmit the payload over the wire
+        await self.send(text_data=json.dumps(response_data))
 
     # --- Database Sync to Async Workers ---
 

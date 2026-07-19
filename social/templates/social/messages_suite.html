@@ -1,0 +1,268 @@
+{% extends 'base.html' %}
+{% block title %}Vertex - Message Center{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-73px)] bg-slate-950 flex w-full overflow-hidden items-stretch">
+    <!-- Main Communications Frame Border Box Wrapper -->
+    <div class="w-full flex h-full max-w-7xl mx-auto border-x border-slate-900 bg-slate-900/10">
+        
+        <!-- Threads Index Panel (Left Sidebar) -->
+        <div class="w-80 border-r border-slate-900 flex flex-col bg-slate-950/40 shrink-0">
+            <div class="p-4 border-b border-slate-900 bg-slate-950/20">
+                <span class="text-xxs font-mono uppercase tracking-widest text-emerald-400 font-bold block mb-0.5">Secure Channels</span>
+                <h3 class="text-base font-black text-white">Active Logs</h3>
+            </div>
+            <div id="suite-threads-box" class="flex-1 overflow-y-auto divide-y divide-slate-950/60">
+                <p class="p-4 text-xs font-mono text-slate-600">Syncing conversation indexes...</p>
+            </div>
+        </div>
+
+        <!-- Real-Time Chat Workspace Frame (Right Dashboard Panel) -->
+        <div class="flex-1 flex flex-col bg-slate-950/20 relative justify-between">
+            
+            <!-- Default Display Blocking Layer Mask -->
+            <div id="suite-mask" class="absolute inset-0 bg-slate-950/90 z-30 flex flex-col items-center justify-center text-center p-6 transition-opacity duration-300">
+                <div class="h-12 w-12 rounded-2xl border border-slate-800 bg-slate-900 flex items-center justify-center text-xl mb-3 shadow-lg">✉️</div>
+                <h4 class="text-sm font-bold text-white tracking-wide">No Active Stream Pipeline</h4>
+                <p class="text-slate-500 text-xxs max-w-xs leading-relaxed mt-1">Select an active training connection conversation from the left layout bar index to decrypt messaging arrays.</p>
+            </div>
+
+            <!-- Thread Profile Top Bar Header -->
+            <div class="p-4 border-b border-slate-900 bg-slate-950/40 flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div id="suite-header-avatar" class="h-9 w-9 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 font-black text-xs flex items-center justify-center">?</div>
+                    <div>
+                        <h4 id="suite-header-title" class="text-sm font-bold text-white">Select Peer</h4>
+                        <div class="text-[10px] font-mono text-slate-500">Dual-Channel Sync Routing Operational</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Unified Continuous Message Log Stream Frame -->
+            <div id="suite-canvas" class="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-950/10">
+                <!-- Message structures drop here -->
+            </div>
+
+            <!-- Ingestion Input Deck Form -->
+            <form id="suite-deck-form" class="p-4 bg-slate-950/50 border-t border-slate-900 flex gap-3">
+                <input type="text" id="suite-input-field" placeholder="Transmit direct real-time message text payload..." autocomplete="off" disabled
+                       class="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all">
+                <button type="submit" id="suite-submit-btn" disabled
+                        class="bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 font-black px-6 rounded-xl text-xs uppercase tracking-wider hover:brightness-110 active:scale-95 transition-all disabled:opacity-40">
+                    Transmit
+                </button>
+            </form>
+
+        </div>
+
+    </div>
+</div>
+
+{{ initial_thread_uuid|json_script:"initial-thread-uuid" }}
+
+<script>
+    const userSessionIdentity = "{{ user.username }}";
+    let liveSocketInstance = null;
+
+    // 1. Read the injected template token safely out of context
+    const initialThreadUuid = JSON.parse(document.getElementById('initial-thread-uuid').textContent);
+
+    async function loadSuiteThreads() {
+        try {
+            // Fetch active JWT token out of storage to pass REST framework authentication guards
+            const token = sessionStorage.getItem('accessToken');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const response = await fetch('/api/social/chat/', { headers: headers });
+            const threads = await response.json();
+            
+            const box = document.getElementById('suite-threads-box');
+            box.innerHTML = '';
+
+            if (threads.length === 0 && !window.location.search.includes('target=')) {
+                box.innerHTML = `<p class="p-4 text-xs font-mono text-slate-600">// No historical conversation lines found.</p>`;
+            } else {
+                threads.forEach(t => {
+                    const companion = t.participants.find(p => p.username.toLowerCase() !== userSessionIdentity.toLowerCase()) || { username: "System" };
+                    const row = document.createElement('div');
+                    row.className = "p-4 hover:bg-slate-900/20 cursor-pointer transition-all flex items-center space-x-3 group";
+                    row.id = `thread-row-${t.id}`;
+                    row.onclick = () => launchChatPipeline(t.id, companion.username);
+                    
+                    row.innerHTML = `
+                        <div class="h-8 w-8 rounded-lg bg-slate-900 border border-slate-800 group-hover:border-emerald-500/30 text-slate-400 flex items-center justify-center text-xs font-bold transition-colors">
+                            ${companion.username[0].toUpperCase()}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-xs font-bold text-slate-300 group-hover:text-white truncate">${companion.username}</div>
+                            <p class="text-[10px] text-slate-600 font-mono truncate">Open channel pipeline</p>
+                        </div>
+                    `;
+                    box.appendChild(row);
+                });
+            }
+
+            // 2. CHECK: If an initial UUID was provided by the URL path, auto-route it immediately!
+            if (initialThreadUuid) {
+                const targetedThread = threads.find(t => t.id === initialThreadUuid);
+                if (targetedThread) {
+                    const companion = targetedThread.participants.find(p => p.username.toLowerCase() !== userSessionIdentity.toLowerCase()) || { username: "User" };
+                    launchChatPipeline(targetedThread.id, companion.username);
+                    return; 
+                }
+            }
+
+            // Fallback: Check query parameters (?target=username)
+            const queryParams = new URLSearchParams(window.location.search);
+            const explicitTarget = queryParams.get('target');
+
+            if (explicitTarget) {
+                // Look for an existing thread
+                let targetThread = threads.find(t => {
+                    if (t.is_group) return false; 
+                    return t.participants.some(p => p.username.toLowerCase() === explicitTarget.toLowerCase());
+                });
+
+                if (targetThread) {
+                    // Existing thread found, boot it up!
+                    launchChatPipeline(targetThread.id, explicitTarget);
+                } else {
+                    console.log(`Initializing brand new chat pipeline with ${explicitTarget}...`);
+                    
+                    try {
+                        const token = sessionStorage.getItem('accessToken');
+                        const createHeaders = { 
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        };
+                        if (token) createHeaders['Authorization'] = `Bearer ${token}`;
+
+                        const createRes = await fetch('/api/social/chat/', {
+                            method: 'POST',
+                            headers: createHeaders,
+                            body: JSON.stringify({ username: explicitTarget })
+                        });
+
+                        if (createRes.ok) {
+                            const newThread = await createRes.json();
+                            
+                            // Remove query params from address bar to completely avoid loop triggers
+                            const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+                            window.history.replaceState({ path: cleanUrl }, '', cleanUrl);
+
+                            // Re-sync UI layouts
+                            await loadSuiteThreads(); 
+                            launchChatPipeline(newThread.id, explicitTarget);
+                        } else {
+                            const errData = await createRes.json();
+                            console.error("Failed to provision room:", errData);
+                        }
+                    } catch (provErr) {
+                        console.error("Thread creation request failed:", provErr);
+                    }
+                }
+            }
+        } catch(err) {
+            console.error("Conversations processing initialization error:", err);
+        }
+    }
+
+    async function launchChatPipeline(threadUuid, peerUsername) {
+        document.getElementById('suite-mask').classList.add('hidden');
+        document.getElementById('suite-header-title').innerText = peerUsername;
+        document.getElementById('suite-header-avatar').innerText = peerUsername[0].toUpperCase();
+        
+        document.getElementById('suite-input-field').disabled = false;
+        document.getElementById('suite-submit-btn').disabled = false;
+
+        const canvas = document.getElementById('suite-canvas');
+        canvas.innerHTML = '<p class="text-center font-mono text-xxs text-slate-600 py-4">// Accessing historical index logs...</p>';
+
+        document.querySelectorAll('[id^="thread-row-"]').forEach(el => el.classList.remove('bg-slate-900/40', 'border-l-2', 'border-emerald-500'));
+        const activeRow = document.getElementById(`thread-row-${threadUuid}`);
+        if (activeRow) activeRow.classList.add('bg-slate-900/40', 'border-l-2', 'border-emerald-500');
+
+        try {
+            const token = sessionStorage.getItem('accessToken');
+            const headers = { 'Content-Type': 'application/json' };
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
+            const historyRes = await fetch(`/api/social/chat/${threadUuid}/history/`, { headers: headers });
+            const records = await historyRes.json();
+            canvas.innerHTML = '';
+            
+            records.forEach(msg => {
+                const messageText = msg.message || msg.text;
+                let senderUsername = "System";
+                if (msg.sender && typeof msg.sender === 'object' && msg.sender.username) {
+                    senderUsername = msg.sender.username;
+                } else if (msg.sender_username) {
+                    senderUsername = msg.sender_username;
+                } else if (typeof msg.sender === 'string') {
+                    senderUsername = msg.sender;
+                }
+                
+                if (messageText) {
+                    appendBubble(senderUsername, messageText);
+                }
+            });
+            
+            canvas.scrollTop = canvas.scrollHeight;
+        } catch(err) { 
+            console.error("Historical fetch broken:", err); 
+        }
+
+        if (liveSocketInstance) liveSocketInstance.close();
+
+        const wsPrefix = window.location.protocol === "https:" ? "wss://" : "ws://";
+        liveSocketInstance = new WebSocket(`${wsPrefix}${window.location.host}/ws/social/chat/${threadUuid}/`);
+
+        liveSocketInstance.onmessage = function(e) {
+            const payload = JSON.parse(e.data);
+            const messageContent = payload.message || payload.text;
+            const senderName = (payload.sender && payload.sender.username) ? payload.sender.username : (payload.sender || "System");
+
+            if (messageContent) {
+                appendBubble(senderName, messageContent);
+                canvas.scrollTop = canvas.scrollHeight;
+            }
+        };
+    }
+
+    function appendBubble(sender, content) {
+        const canvas = document.getElementById('suite-canvas');
+        const selfMatch = sender.toLowerCase() === userSessionIdentity.toLowerCase();
+        
+        const row = document.createElement('div');
+        row.className = `flex w-full ${selfMatch ? 'justify-end' : 'justify-start'}`;
+        row.innerHTML = `
+            <div class="max-w-[65%] rounded-2xl px-4 py-2.5 text-xs border ${
+                selfMatch 
+                ? 'bg-gradient-to-r from-emerald-500/10 to-teal-600/10 border-emerald-500/20 text-slate-200' 
+                : 'bg-slate-900 border-slate-800 text-slate-300'
+            }">
+                <div class="font-mono text-[9px] text-slate-500 mb-0.5">${sender}</div>
+                <div class="break-words">${content}</div>
+            </div>
+        `;
+        canvas.appendChild(row);
+    }
+
+    document.getElementById('suite-deck-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const input = document.getElementById('suite-input-field');
+        const str = input.value.trim();
+        if (str && liveSocketInstance && liveSocketInstance.readyState === WebSocket.OPEN) {
+            liveSocketInstance.send(JSON.stringify({ 'message': str }));
+            input.value = '';
+        }
+    });
+
+    window.addEventListener('DOMContentLoaded', loadSuiteThreads);
+</script>
+{% endblock %}
