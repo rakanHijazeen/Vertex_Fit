@@ -792,15 +792,21 @@
     formData.append("language", preferredLanguage);
 
     try {
-      // Adjust this URL to match your actual urls.py route for WorkoutVideoUploadView
+      const token = await getValidToken();
+      
+      const headers = {};
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      } else {
+        guideText.textContent = "❌ Auth token missing. Please log in again.";
+        return;
+      }
+
       const response = await fetch("/api/workouts/upload/", {
         method: "POST",
         // Fetch automatically sets the correct multipart boundary when passing FormData
         body: formData,
-        headers: {
-          // If not using your CsrfExempt bypass, add the CSRF token here:
-          // 'X-CSRFToken': getCookie('csrftoken')
-        },
+        headers: headers,
       });
 
       const data = await response.json();

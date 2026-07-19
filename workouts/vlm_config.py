@@ -1,12 +1,38 @@
 import os
+from datetime import date
 
 # Base fallback setting
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-# A dynamic architectural function that generates the system instruction string for the VLM engine based on the exercise name and target rep count.
-def get_vlm_system_instruction(exercise_name, target_reps, language, is_prerecorded=False):
+def get_vlm_system_instruction(user, exercise_name, target_reps, language, is_prerecorded=False):
+    """
+    A dynamic architectural function that generates the system instruction string for the VLM engine.
+    Injects custom user profile metrics directly into the context layer.
+    """
+    # 1. Safely extract user context from the profile relationship
+    profile = getattr(user, 'profile', None)
     
-    # Dynamic text based on upload type
+    # Human-readable mapping for fitness goals
+    goal_map = {
+        'BULK': 'Bulking / Gain Muscle',
+        'CUT': 'Cutting / Lose Fat',
+        'MAINTAIN': 'Maintenance'
+    }
+    
+    # Extract structural metrics with fallbacks if onboarding isn't fully completed
+    fitness_goal = goal_map.get(profile.fitness_goal, 'General Fitness') if profile else 'General Fitness'
+    experience = profile.experience_level.title() if profile else 'Intermediate'
+    gender = profile.gender if profile else 'Not Specified'
+    
+    # Calculate age from date_of_birth dynamically
+    age_str = "Not Provided"
+    if profile and profile.date_of_birth:
+        today = date.today()
+        dob = profile.date_of_birth
+        age = today.year - dob.year - ((today.month, today.day) < (dob.month, dob.day))
+        age_str = f"{age} years old"
+
+    # 2. Dynamic text based on upload type
     if is_prerecorded:
         rep_constraint = "- The user uploaded a pre-recorded video file for a complete set evaluation."
         template_rep_line = "- **Set Execution**: Evaluated full visible clip from start to finish"
@@ -16,6 +42,12 @@ def get_vlm_system_instruction(exercise_name, target_reps, language, is_prerecor
 
     return f"""
 You are an expert biomechanics specialist and elite personal trainer. Your job is to analyze video recordings of lifters performing workout sets and provide deep, precise, millisecond-accurate mechanical feedback.
+
+👤 ATHLETE CONTEXT LAYER:
+You must tailor your technical cues and safety limits using this lifter's biological profile:
+- **Age / Gender**: {age_str} | {gender}
+- **Experience Level**: {experience} Lifter (Adjust your technical depth based on this level)
+- **Primary Fitness Goal**: {fitness_goal} (Ensure your concentric power and safety modifications align with this objective)
 
 ⚠️ CRITICAL MOVEMENT CONSTRAINTS (DO NOT IGNORE):
 - The user is explicitly performing a: {exercise_name}
@@ -47,6 +79,10 @@ When analyzing the video, look closely at:
 * **Eccentric Phase (Lowering)**: [Feedback on speed and control]
 * **Concentric Phase (Pushing/Pulling)**: [Feedback on power output]
 * **Range of Motion**: [Feedback on depth or extension limits]
+
+## 🎯 Profile Optimization & Contextual Alignment
+- **Experience Alignment**: [Assess if their mechanical execution matches their declared '{experience}' experience level]
+- **Goal Modification**: [Provide 1 brief tip optimizing this movement variant for their '{fitness_goal}' objective]
 
 ## 🚨 Form Corrections & Safety
 - **Major Breakdown**: [Highlight primary flaw observed in the video]

@@ -22,7 +22,7 @@ class GeminiVLMService:
         self.client = Client(api_key=api_key)
         self.model_name = "gemini-2.5-flash"
 
-    def analyze_workout_video(self, video_url: str, exercise_name: str, target_reps: int, language: str = "English") -> str:
+    def analyze_workout_video(self, user, video_url: str, exercise_name: str, target_reps: int, language: str = "English") -> str:
         """
         Passes a secure S3 storage location path or public stream URL to Gemini Flash for deep
         form, tempo, and range of motion breakdown analysis.
@@ -31,7 +31,7 @@ class GeminiVLMService:
         is_prerecorded = (target_reps == 0)
 
         # 💡 Call the dynamic function from vlm_config instead of reading a static attribute
-        system_instruction = vlm_config.get_vlm_system_instruction(exercise_name, target_reps, language, is_prerecorded=is_prerecorded)
+        system_instruction = vlm_config.get_vlm_system_instruction(user, exercise_name, target_reps, language, is_prerecorded=is_prerecorded)
 
         try:
             config = types.GenerateContentConfig(
