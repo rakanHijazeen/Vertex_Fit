@@ -63,21 +63,32 @@
                 VERTEX <span class="text-emerald-400">FIT</span>
             </span>
         </div>
-        <nav class="hidden md:flex items-center space-x-8">
-            {% if user.is_authenticated %}
-                <!-- Dashboard Navigation -->
-                <a href="{% url 'live_workout_tracker' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'live_workout_tracker' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Live Coach</a>
-                <!-- Active state logic for Dashboard -->
-                <a href="{% url 'workout_dashboard' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'workout_dashboard' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Dashboard</a>
-                <!-- Active state logic for AI Chat -->
-                <a href="{% url 'ai_chat_coach' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'ai_chat_coach' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">AI Chat</a>
-                <button onclick="executeSignOut(event)" class="cursor-pointer text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors">Sign Out</button>            {% else %}
-                <!-- Landing Page Navigation -->
-                <a href="#features" class="text-sm font-medium text-slate-400 hover:text-emerald-400">Features</a>
-                <a href="#how-it-works" class="text-sm font-medium text-slate-400 hover:text-emerald-400">How It Works</a>
-                <a href="#ai-capabilities" class="text-sm font-medium text-slate-400 hover:text-emerald-400">AI Capabilities</a>
-            {% endif %}
-        </nav>
+        <div class="hidden md:flex items-center space-x-8">
+            <nav class="hidden md:flex items-center space-x-8">
+                {% if user.is_authenticated %}
+                    <!-- Dashboard Navigation -->
+                    <a href="{% url 'live_workout_tracker' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'live_workout_tracker' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Live Coach</a>
+                    <!-- Active state logic for Dashboard -->
+                    <a href="{% url 'workout_dashboard' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'workout_dashboard' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Dashboard</a>
+                    <!-- Active state logic for AI Chat -->
+                    <a href="{% url 'ai_chat_coach' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'ai_chat_coach' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">AI Chat</a>
+                    <button onclick="executeSignOut(event)" class="cursor-pointer text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors">Sign Out</button>            {% else %}
+                    <!-- Landing Page Navigation -->
+                    <a href="#features" class="text-sm font-medium text-slate-400 hover:text-emerald-400">Features</a>
+                    <a href="#how-it-works" class="text-sm font-medium text-slate-400 hover:text-emerald-400">How It Works</a>
+                    <a href="#ai-capabilities" class="text-sm font-medium text-slate-400 hover:text-emerald-400">AI Capabilities</a>
+                {% endif %}
+            </nav>
+
+            <!-- Global Target Language Configuration Selector -->
+            <div class="flex items-center space-x-2 border-l border-slate-800 pl-6">
+                <select id="globalLanguageSelector"
+                    class="bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-medium text-slate-300 focus:outline-none focus:border-emerald-500 transition cursor-pointer">
+                    <option value="English">English</option>
+                    <option value="Arabic">Arabic (العربية)</option>
+                </select>
+            </div>
+        </div>
 
         <!-- Authentication & Profile Controls with Dynamic Notification Badge -->
         <div class="flex items-center space-x-4 relative">
@@ -130,9 +141,21 @@
                 </a>
             {% endif %}
         </div>
-        <!-- Global Async Notifications Controller Script -->
+        <!-- Global Async Notifications Controller & Language Orchestrator Script -->
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                // --- 1. Language State Sync Controller ---
+                const langSelector = document.getElementById("globalLanguageSelector");
+                if (langSelector) {
+                    const savedLang = localStorage.getItem("vertex_fit_lang") || "English";
+                    langSelector.value = savedLang;
+
+                    langSelector.addEventListener("change", (e) => {
+                        localStorage.setItem("vertex_fit_lang", e.target.value);
+                    });
+                }
+                
+                // --- 2. Live Notifications Logic ---
                 const bellBtn = document.getElementById('noti-bell-btn');
                 const dropdown = document.getElementById('noti-dropdown');
                 if (!bellBtn) return;
