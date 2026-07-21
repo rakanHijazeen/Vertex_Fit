@@ -27,8 +27,12 @@ def process_vlm_coaching_analysis(workout_session_id):
         # 4. Initialize your isolated Gemini service abstraction wrapper
         vlm_service = GeminiVLMService()
 
+        # 2. Grab the user object tied to this session 💡
+        user = session.user
+        
         # 5. Hand over processing to Gemini with exact ground-truth values to block hallucinations
         ai_analysis_markdown = vlm_service.analyze_workout_video(
+            user=user,
             video_url=secure_video_url,
             exercise_name=session.exercise.name,
             target_reps=session.rep_count,
