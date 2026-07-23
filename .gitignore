@@ -1,6 +1,9 @@
 venv/
 __pycache__/
 *.pyc
+backup.sql
+*.sql
 .env
 media/
 gcp-vertex-sa.json
+staticfiles/
