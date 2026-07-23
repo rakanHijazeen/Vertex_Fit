@@ -42,6 +42,11 @@ services:
       DB_HOST: db
       REDIS_HOST: redis
       REDIS_URL: redis://redis:6379/0
+      PADDLE_CLIENT_TOKEN: ${PADDLE_CLIENT_TOKEN}
+      PADDLE_PRO_PRICE_ID: ${PADDLE_PRO_PRICE_ID}
+      PADDLE_ANNUAL_PRICE_ID: ${PADDLE_ANNUAL_PRICE_ID}
+      PADDLE_VIP_PRICE_ID: ${PADDLE_VIP_PRICE_ID}
+      PADDLE_WEBHOOK_SECRET: ${PADDLE_WEBHOOK_SECRET}
     volumes:
       - .:/app
       - ./media:/app/media

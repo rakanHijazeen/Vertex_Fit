@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.base_user import BaseUserManager
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.contrib.auth import get_user_model
+from payments.models import UserSubscription
 
 class CustomUserManager(BaseUserManager):
     """Custom manager where email is the unique identifier for auth."""
@@ -36,14 +36,14 @@ class User(AbstractUser):
     """Custom user model expanding fields for authentication handles."""
     username = models.CharField(
         max_length=150, 
-        unique=True,          # Setting unique=True AUTOMATICALLY creates a database index in PostgreSQL!
-        db_index=True,        # Explicitly keeping this here for absolute clarity 
+        unique=True,
+        db_index=True,
         help_text="Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only."
     )
     email = models.EmailField(unique=True)
 
     USERNAME_FIELD = 'email'
-    REQUIRED_FIELDS = ['username']  # 4. Tells Django that username is required when creating users/superusers via terminal
+    REQUIRED_FIELDS = ['username']
     
     objects = CustomUserManager()
 
@@ -65,24 +65,25 @@ class Profile(models.Model):
     height = models.FloatField(help_text="Height in cm", null=True, blank=True)
     target_weight = models.FloatField(help_text="Target weight in kg", null=True, blank=True)
     fitness_goal = models.CharField(max_length=12, choices=FITNESS_GOALS, default='MAINTAIN')
-    experience_level = models.CharField(max_length=20, choices=[('BEGINNER', 'Beginner'), ('INTERMEDIATE', 'Intermediate'), ('ADVANCED', 'Advanced')], default='BEGINNER')
-    timezone = models.CharField(max_length=50, default='Asia/Amman') # Default timezone set to Asia/Amman
-    is_premium = models.BooleanField(default=False)
+    experience_level = models.CharField(
+        max_length=20, 
+        choices=[('BEGINNER', 'Beginner'), ('INTERMEDIATE', 'Intermediate'), ('ADVANCED', 'Advanced')], 
+        default='BEGINNER'
+    )
+    timezone = models.CharField(max_length=50, default='Asia/Amman')
     is_email_verified = models.BooleanField(default=False)
-    paddle_subscription_id = models.CharField(max_length=100, null=True, blank=True)
+    onboarding_complete = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    onboarding_complete = models.BooleanField(default=False) # tracks if the user has completed the onboarding registration process
 
     def __str__(self):
         return f"Profile for {self.user.email}"
-    
-user= get_user_model()
+
 
 @receiver(post_save, sender=User)
 def save_or_create_user_profile(sender, instance, created, **kwargs):
     if created:
         Profile.objects.get_or_create(user=instance)
+        UserSubscription.objects.get_or_create(user=instance)
     else:
-        # Handles saving if it exists, or catches accounts created before the signal was added
         if not hasattr(instance, 'profile'):
             Profile.objects.create(user=instance)

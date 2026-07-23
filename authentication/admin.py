@@ -26,9 +26,15 @@ class CustomUserAdmin(UserAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     """Configuration to display user fitness metrics and monetization status."""
-    list_display = ('user', 'fitness_goal', 'height', 'target_weight', 'gender', 'timezone', 'is_premium', 'onboarding_complete')
-    list_filter = ('fitness_goal', 'is_premium', 'onboarding_complete')
+    list_display = ('user', 'get_tier', 'fitness_goal', 'height', 'target_weight', 'gender', 'timezone', 'onboarding_complete')
+    list_filter = ('fitness_goal', 'onboarding_complete')
     search_fields = ('user__email', 'user__username')
+
+    @admin.display(description='Subscription Tier')
+    def get_tier(self, obj):
+        # Safely checks the related payments.UserSubscription model
+        sub = getattr(obj.user, 'subscription', None)
+        return sub.get_tier_display() if sub else 'Free'
 
 # Formally register the custom user model with its configuration matrix
 admin.site.register(User, CustomUserAdmin)

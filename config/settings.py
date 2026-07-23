@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     'workouts',
     'background_task',
     'social.apps.SocialConfig',
+    'payments',
 ]
 
 # Required for django.contrib.sites

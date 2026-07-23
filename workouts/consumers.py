@@ -3,10 +3,12 @@ import json
 import websockets
 from channels.db import database_sync_to_async
 from google.genai import types
+from django.utils import timezone
 from .models import ChatThread, ChatMessage
 from .chat_service import PersonalAIContextService
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
+from payments.usage import check_live_coach_quota, consume_live_coach_seconds
 
 
 class LiveCoachingConsumer(AsyncWebsocketConsumer):
@@ -18,6 +20,8 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         self.phase1_triggered = False
         self.setup_complete_sent = False
         self.api_key = getattr(settings, "GEMINI_API_KEY", None)
+        self.live_coach_started_at = None
+        self.live_coach_usage_recorded = False
 
         self.current_rep_count = 0
         self.language = "ar"  # Clean fallback tracking variable initial state
@@ -34,6 +38,11 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         )
 
     async def disconnect(self, code):
+        if self.live_coach_started_at is not None and not self.live_coach_usage_recorded:
+            elapsed_seconds = max(1, int((timezone.now() - self.live_coach_started_at).total_seconds()))
+            await database_sync_to_async(consume_live_coach_seconds)(self.scope.get("user"), elapsed_seconds)
+            self.live_coach_usage_recorded = True
+
         if self.gemini_task is not None:
             self.gemini_task.cancel()
             try:
@@ -62,6 +71,12 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         action_type = data.get("type")
 
         if action_type == "session_init":
+            subscription, quota_error = await database_sync_to_async(check_live_coach_quota)(self.scope.get("user"))
+            if quota_error:
+                await self.send(json.dumps({"type": "error", "message": quota_error}))
+                await self.close()
+                return
+
             exercise_name = data.get("exercise_name", "Workout")
             # Normalize the incoming string (e.g., handles "AR", "ar ", etc.)
             raw_lang = str(data.get("language", "ar")).strip().lower()
@@ -70,6 +85,7 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
             self.language = "ar" if "ar" in raw_lang else "en"
             
             await self.init_gemini_live_session(exercise_name, self.language)
+            self.live_coach_started_at = timezone.now()
             return
 
         if action_type == "user_ready":

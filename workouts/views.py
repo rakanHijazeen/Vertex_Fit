@@ -11,6 +11,8 @@ from rest_framework.parsers import MultiPartParser, FormParser
 
 from .utils import S3Service
 from .models import WorkoutSession, Exercise, ChatThread, ChatMessage
+from payments.permissions import CanUploadRetroactiveVideo
+from payments.usage import check_retroactive_upload_quota
 
 # From your upcoming background workers module (Step 4.2):
 from .tasks import process_vlm_coaching_analysis
@@ -26,10 +28,14 @@ class WorkoutVideoUploadView(APIView):
     uploads them to S3, and hands off processing to the background worker loop.
     """
     authentication_classes = [JWTAuthentication] #
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, CanUploadRetroactiveVideo]
     parser_classes = [MultiPartParser, FormParser] # Needed to receive binary streams from the mobile client
 
     def post(self, request, format=None):
+        _, quota_error = check_retroactive_upload_quota(request.user)
+        if quota_error:
+            return Response({"detail": quota_error}, status=status.HTTP_403_FORBIDDEN)
+
         exercise_param = request.data.get('exercise_id')
         video_file = request.data.get('video') # The phone passes the automated capture payload here
 
@@ -122,6 +128,9 @@ class WorkoutSessionDetailView(APIView):
         except WorkoutSession.DoesNotExist:
             return Response({"error": "Workout session not found."}, status=status.HTTP_404_NOT_FOUND)
 
+        if not workout_session.video_url:
+            return Response({"error": "Workout session does not have a video attached."}, status=status.HTTP_400_BAD_REQUEST)
+
         fresh_stream_url = S3Service.generate_presigned_url(workout_session.video_url)
 
         return Response({
@@ -160,6 +169,9 @@ def workout_analysis_page_view(request, session_id):
     Enforces user ownership so users can only see their own analysis.
     """
     session = get_object_or_404(WorkoutSession, id=session_id, user=request.user)
+    if not session.video_url:
+        return redirect('/api/workouts/dashboard/')
+
     # 🎥Generate a secure, short-lived streaming link for the browser video player
     video_stream_url = S3Service.generate_presigned_url(session.video_url)
     

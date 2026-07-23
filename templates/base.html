@@ -72,6 +72,8 @@
                     <a href="{% url 'workout_dashboard' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'workout_dashboard' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Dashboard</a>
                     <!-- Active state logic for AI Chat -->
                     <a href="{% url 'ai_chat_coach' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'ai_chat_coach' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">AI Chat</a>
+                    <!-- Active state logic for Pricing -->
+                    <a href="{% url 'payments:pricing' %}" class="text-sm font-medium transition-colors {% if request.resolver_match.url_name == 'payments:pricing' %}text-emerald-400 border-b-2 border-emerald-400 pb-1{% else %}text-slate-400 hover:text-emerald-400{% endif %}">Pricing & Plans</a>
                     <button onclick="executeSignOut(event)" class="cursor-pointer text-sm font-medium text-slate-400 hover:text-rose-400 transition-colors">Sign Out</button>            {% else %}
                     <!-- Landing Page Navigation -->
                     <a href="#features" class="text-sm font-medium text-slate-400 hover:text-emerald-400">Features</a>

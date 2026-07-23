@@ -1,0 +1,243 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto py-12 px-4">
+    <div class="text-center mb-8">
+        <h1 class="text-4xl font-extrabold text-white mb-3">Choose Your Plan</h1>
+        <p class="text-slate-400 text-lg mb-8">Select the coaching tier that fits your training needs.</p>
+
+        <!-- Billing Cycle Toggle Switch -->
+        <div class="inline-flex items-center bg-slate-800 p-1 rounded-xl border border-slate-700">
+            <button id="monthly-btn" onclick="setBilling('monthly')" 
+                    class="px-5 py-2 rounded-lg text-sm font-semibold transition bg-emerald-500 text-slate-950 shadow">
+                Monthly
+            </button>
+            <button id="annual-btn" onclick="setBilling('annual')" 
+                    class="px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-400 hover:text-white">
+                Annual <span class="ml-1 text-xs text-emerald-400 font-bold">(Save 25%)</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Tiers Grid -->
+    <div class="grid md:grid-cols-3 gap-8 items-stretch mt-8">
+        
+        <!-- 1. Free Tier -->
+        <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <div>
+                <span class="text-xs uppercase font-semibold text-slate-400 tracking-wider">Starter</span>
+                <h3 class="text-2xl font-bold text-white mt-1">Free Tier</h3>
+                <p class="text-3xl font-extrabold text-white my-4">0 JOD <span class="text-sm font-normal text-slate-400">/ mo</span></p>
+                
+                <hr class="border-slate-700/60 my-4">
+
+                <ul class="text-slate-300 space-y-3 text-sm">
+                    <li class="flex items-center gap-2">
+                        <span class="text-emerald-400 font-bold">✓</span> AI Chatbot (Authenticated)
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span class="text-emerald-400 font-bold">✓</span> Up to 3 video uploads / mo
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span class="text-emerald-400 font-bold">✓</span> 3 minutes live AI coach / mo
+                    </li>
+                    <li class="flex items-center gap-2 text-slate-500 line-through">
+                        <span>✕</span> Pro / VIP Exclusive Insights
+                    </li>
+                </ul>
+            </div>
+
+            <div class="mt-8">
+                {% if request.user.subscription.tier == 'free' or not request.user.subscription %}
+                    <button disabled class="w-full bg-slate-700/50 text-slate-400 font-medium py-3 rounded-xl cursor-default">
+                        Current Plan
+                    </button>
+                {% else %}
+                    <span class="block text-center text-xs text-slate-500">Standard Tier</span>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 2. Pro Tier (Monthly 5 JOD / Annual 45 JOD) -->
+        <div class="bg-slate-800 border-2 border-emerald-500 rounded-2xl p-6 flex flex-col justify-between shadow-emerald-500/10 shadow-xl relative">
+            <div class="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-emerald-500 text-slate-950 font-extrabold text-xs tracking-wider px-3 py-1 rounded-full uppercase">
+                Most Popular
+            </div>
+
+            <div>
+                <span class="text-xs uppercase font-semibold text-emerald-400 tracking-wider">Serious Training</span>
+                <h3 class="text-2xl font-bold text-white mt-1">Pro Plan</h3>
+                
+                <div class="my-4">
+                    <span id="pro-price" class="text-3xl font-extrabold text-white">5 JOD</span> 
+                    <span id="pro-billing-label" class="text-sm font-normal text-slate-400">/ mo</span>
+                </div>
+                
+                <hr class="border-slate-700/60 my-4">
+
+                <ul class="text-slate-300 space-y-3 text-sm">
+                    <li class="flex items-center gap-2">
+                        <span class="text-emerald-400 font-bold">✓</span> AI Chatbot with Deep Context
+                    </li>
+                    <li class="flex items-center gap-2 font-semibold text-white">
+                        <span class="text-emerald-400 font-bold">✓</span> Unlimited Video Uploads
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span class="text-emerald-400 font-bold">✓</span> 45 minutes live AI coach / mo
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span class="text-emerald-400 font-bold">✓</span> Full Pro Permission Access
+                    </li>
+                </ul>
+            </div>
+
+            <div class="mt-8">
+                {% if request.user.subscription.tier == 'pro' and request.user.subscription.status == 'active' %}
+                    <button disabled class="w-full bg-slate-700/50 text-emerald-400 font-medium py-3 rounded-xl cursor-default">
+                        Active Plan
+                    </button>
+                {% else %}
+                    <button id="pro-checkout-btn" onclick="openCheckout(currentProPriceId)" 
+                            class="w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold py-3 rounded-xl transition shadow-lg shadow-emerald-500/20">
+                        Upgrade to Pro
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- 3. VIP Tier (10 JOD / mo) -->
+        <div class="bg-slate-800/80 border border-purple-500/40 rounded-2xl p-6 flex flex-col justify-between shadow-lg">
+            <div>
+                <span class="text-xs uppercase font-semibold text-purple-400 tracking-wider">Ultimate</span>
+                <h3 class="text-2xl font-bold text-white mt-1">VIP Plan</h3>
+                <p class="my-4">
+                    <span id="vip-price" class="text-3xl font-extrabold text-white">10 JOD</span> 
+                    <span class="text-sm font-normal text-slate-400">/ mo</span>
+                </p>                
+                <hr class="border-slate-700/60 my-4">
+
+                <ul class="text-slate-300 space-y-3 text-sm">
+                    <li class="flex items-center gap-2">
+                        <span class="text-purple-400 font-bold">✓</span> AI Chatbot with Priority Context
+                    </li>
+                    <li class="flex items-center gap-2 font-semibold text-white">
+                        <span class="text-purple-400 font-bold">✓</span> Unlimited Video Uploads
+                    </li>
+                    <li class="flex items-center gap-2 font-semibold text-purple-300">
+                        <span class="text-purple-400 font-bold">✓</span> 120 minutes live AI coach / mo
+                    </li>
+                    <li class="flex items-center gap-2">
+                        <span class="text-purple-400 font-bold">✓</span> Unlocks Pro & VIP Exclusive Rules
+                    </li>
+                </ul>
+            </div>
+
+            <div class="mt-8">
+                {% if request.user.subscription.tier == 'vip' and request.user.subscription.status == 'active' %}
+                    <button disabled class="w-full bg-slate-700/50 text-purple-400 font-medium py-3 rounded-xl cursor-default">
+                        Active Plan
+                    </button>
+                {% else %}
+                    <button onclick="openCheckout('{{ PADDLE_VIP_PRICE_ID }}')" 
+                            class="w-full bg-purple-600 hover:bg-purple-500 text-white font-bold py-3 rounded-xl transition shadow-lg shadow-purple-600/20">
+                        Upgrade to VIP
+                    </button>
+                {% endif %}
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Paddle.js Integration -->
+<script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+<script type="text/javascript">
+    const PRO_MONTHLY_ID = "{{ PADDLE_PRO_PRICE_ID }}";
+    const PRO_ANNUAL_ID = "{{ PADDLE_ANNUAL_PRICE_ID }}";
+    const VIP_MONTHLY_ID = "{{ PADDLE_VIP_PRICE_ID }}";
+    
+    let currentProPriceId = PRO_MONTHLY_ID;
+    
+    // Set environment first
+    Paddle.Environment.set('sandbox'); // Change to 'live' in production
+
+    // Initialize Paddle
+    Paddle.Initialize({ 
+        token: "{{ PADDLE_CLIENT_TOKEN }}",
+        eventCallback: function(data) {
+            if (data.name === 'checkout.completed') {
+                window.location.href = "{% url 'payments:success' %}";
+            }
+        }
+    });
+
+    // 🌟 Added: Fetch dynamic localized prices directly from Paddle
+    function updateLocalizedPrices() {
+        if (!PRO_MONTHLY_ID && !PRO_ANNUAL_ID && !VIP_MONTHLY_ID) return;
+
+        const itemsToPreview = [];
+        if (currentProPriceId) itemsToPreview.push({ priceId: currentProPriceId, quantity: 1 });
+        if (VIP_MONTHLY_ID) itemsToPreview.push({ priceId: VIP_MONTHLY_ID, quantity: 1 });
+
+        Paddle.PricePreview({ items: itemsToPreview })
+            .then((result) => {
+                const lineItems = result.data.details.lineItems;
+                
+                // Update Pro price from Paddle response
+                if (lineItems[0] && document.getElementById('pro-price')) {
+                    document.getElementById('pro-price').innerText = lineItems[0].formattedTotals.subtotal;
+                }
+                // Update VIP price from Paddle response (if present)
+                if (lineItems[1] && document.getElementById('vip-price')) {
+                    document.getElementById('vip-price').innerText = lineItems[1].formattedTotals.subtotal;
+                }
+            })
+            .catch((error) => {
+                console.error("Paddle PricePreview Error:", error);
+            });
+    }
+
+    function setBilling(cycle) {
+        const monthlyBtn = document.getElementById('monthly-btn');
+        const annualBtn = document.getElementById('annual-btn');
+        const proLabel = document.getElementById('pro-billing-label');
+
+        if (cycle === 'annual') {
+            currentProPriceId = PRO_ANNUAL_ID;
+            proLabel.innerText = '/ yr';
+
+            annualBtn.className = "px-5 py-2 rounded-lg text-sm font-semibold transition bg-emerald-500 text-slate-950 shadow";
+            monthlyBtn.className = "px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-400 hover:text-white";
+        } else {
+            currentProPriceId = PRO_MONTHLY_ID;
+            proLabel.innerText = '/ mo';
+
+            monthlyBtn.className = "px-5 py-2 rounded-lg text-sm font-semibold transition bg-emerald-500 text-slate-950 shadow";
+            annualBtn.className = "px-5 py-2 rounded-lg text-sm font-semibold transition text-slate-400 hover:text-white";
+        }
+
+        // Fetch & render localized prices for the selected cycle
+        updateLocalizedPrices();
+    }
+
+    function openCheckout(priceId) {
+        if (!priceId) {
+            alert('Price ID unconfigured in server environment context.');
+            return;
+        }
+
+        Paddle.Checkout.open({
+            items: [{ priceId: priceId, quantity: 1 }],
+            customData: {
+                user_id: "{{ request.user.id }}"
+            },
+            customer: {
+                email: "{{ request.user.email }}"
+            }
+        });
+    }
+
+    // Fetch initial prices on DOM load
+    document.addEventListener("DOMContentLoaded", updateLocalizedPrices);
+</script>
+{% endblock %}

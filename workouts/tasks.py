@@ -2,6 +2,7 @@ from background_task import background
 from .models import WorkoutSession
 from .vlm_service import GeminiVLMService
 from .utils import S3Service
+from payments.usage import consume_retroactive_upload_usage
 
 @background
 def process_vlm_coaching_analysis(workout_session_id):
@@ -40,9 +41,17 @@ def process_vlm_coaching_analysis(workout_session_id):
         )
 
         # 6. Save the compiled markdown analysis data and mark the queue record complete
+        usage_recorded, usage_error = consume_retroactive_upload_usage(user)
+        if not usage_recorded:
+            session.vlm_feedback = usage_error or "### 🚨 Analysis Failure\nSubscription usage could not be recorded for this session."
+            session.status = 'failed'
+            session.save(update_fields=['vlm_feedback', 'status'])
+            print(f"⚠️ [VLM Worker]: Usage recording failed for Session #{session.id}: {usage_error}")
+            return
+
         session.vlm_feedback = ai_analysis_markdown
         session.status = 'completed'
-        session.save()
+        session.save(update_fields=['vlm_feedback', 'status'])
         
         print(f"✅ [VLM Worker]: Analysis successfully saved for Session #{session.id}!")
 

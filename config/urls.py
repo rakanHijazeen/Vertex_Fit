@@ -35,6 +35,9 @@ urlpatterns = [
 
     # Django-Allauth URLs for social authentication (Google, etc.)
     path('accounts/', include('allauth.urls')),
+
+    # Payments & Billing routes
+    path('payments/', include('payments.urls', namespace='payments')),
     
     # Auth Views
     path('auth/login/', login_page, name='login_page'),

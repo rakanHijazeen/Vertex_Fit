@@ -35,6 +35,7 @@ Incremental==24.11.0
 jmespath==1.1.0
 msgpack==1.2.1
 packaging==26.2
+paddle-python-sdk==1.14.1
 psycopg2-binary==2.9.12
 pyasn1==0.6.3
 pyasn1_modules==0.4.2
