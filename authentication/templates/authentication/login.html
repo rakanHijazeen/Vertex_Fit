@@ -156,7 +156,6 @@ px-4{% endblock %}
 
             if (response.ok) {
                 memoryAccessToken = data.access;
-                sessionStorage.setItem('accessToken', data.access);
                 sessionStorage.setItem('fresh_login', 'true');
                 window.location.href = "/api/workouts/dashboard/";
             } else {

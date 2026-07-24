@@ -42,11 +42,9 @@
     }
   }
 
-  async function getValidToken() {
-    let token = memoryAccessToken || sessionStorage.getItem('accessToken');
-    if (token && !isTokenExpired(token)) {
-      memoryAccessToken = token;
-      return token;
+  async function getValidToken() {    
+      if (memoryAccessToken && !isTokenExpired(memoryAccessToken)) {
+      return memoryAccessToken;
     }
 
     try {
@@ -58,15 +56,13 @@
 
       if (refreshResponse.ok) {
         const data = await refreshResponse.json();
-        memoryAccessToken = data.access;
-        sessionStorage.setItem('accessToken', data.access);
+        memoryAccessToken = data.access; // Store the new access token only in memory
         return data.access;
       } else {
         throw new Error("Refresh token expired");
       }
     } catch (err) {
       console.warn("Silent refresh failed, redirecting to login...");
-      sessionStorage.removeItem('accessToken');
       window.location.href = "/auth/login/";
       return null;
     }
