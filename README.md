@@ -38,6 +38,16 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - **Persistent Global Localization**: Implemented client-side caching (`localStorage`) to synchronize localized report targets across pages. The backend extracts choices automatically to generate full markdown feedback reviews matching the selected language profile (e.g., Arabic, English) seamlessly without schema bloat.
 - **Adaptive Frontend Rendering**: Uses Django template tags (`{% if %}`) within a unified layout page to show performance badges dynamically while automatically omitting redundant metric layouts (like a hardcoded '0 Reps' indicator) for pre-recorded media files.
 
+### 4. Paddle Billing, Subscription Sync, and Tier Limits
+
+- **Paddle v2 Checkout Flow**: Added a server-side checkout session creator that uses the authenticated Django user, the selected Paddle price ID, and optional customer IDs to launch Paddle.js from the frontend.
+- **Webhook-Driven Subscription Sync**: Implemented Paddle webhook handling for `subscription.created`, `subscription.updated`, `transaction.completed`, `subscription.canceled`, and `subscription.past_due` events so Django stays aligned with Paddle status changes.
+- **Subscription State Persistence**: Stores Paddle customer IDs, subscription IDs, price IDs, billing cycle, plan tier, and status in the `UserSubscription` model for each authenticated user.
+- **Tier Mapping**: Maps Paddle price IDs to the correct plan and billing cycle, including monthly Pro, monthly VIP, and yearly Pro plans.
+- **Live Subscription Status API**: Exposes a protected status endpoint for the frontend to read the current tier, billing cycle, live coach time remaining, and retroactive upload availability.
+- **Tiered Usage Enforcement**: Enforces free, Pro, and VIP limits consistently in `payments/usage.py` and `payments/permissions.py`, including retroactive video upload caps and live coach minute limits.
+- **Docker-Aware Billing Configuration**: The billing flow is wired for containerized execution, with Paddle secrets and price IDs passed into the web and worker services through environment variables.
+
 ### 4. Live AI Coach (Real-Time Coaching Prototype)
 
 - Implemented a real-time websocket coaching pipeline using Django Channels and Daphne.
@@ -86,6 +96,7 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
 - **Redis** as the backing store / Channel Layer for real-time WebSocket communication
 - PostgreSQL for relational data storage
 - Background task processing for async AI analysis
+- Paddle Billing v2 for paid subscriptions, checkout creation, and webhook-based entitlement sync
 
 ### AI / Vision
 
@@ -249,8 +260,18 @@ The system is designed to turn a simple camera feed into a coaching loop that ca
    AWS_STORAGE_BUCKET_NAME=your_bucket
    AWS_S3_REGION_NAME=your_region
 
+   PADDLE_CLIENT_TOKEN=your_paddle_client_token
+   PADDLE_API_KEY=your_paddle_api_key
+   PADDLE_ENVIRONMENT=sandbox
+   PADDLE_WEBHOOK_SECRET=your_paddle_webhook_secret
+   PADDLE_PRO_PRICE_ID=your_pro_price_id
+   PADDLE_VIP_PRICE_ID=your_vip_price_id
+   PADDLE_ANNUAL_PRICE_ID=your_annual_pro_price_id
+
    GEMINI_API_KEY=your_gemini_key
    ```
+
+   If you run the project through Docker, make sure the same Paddle variables are available to both the `web` and `worker` containers so checkout creation and webhook-driven subscription sync work consistently.
 
 5. Run migrations
 
