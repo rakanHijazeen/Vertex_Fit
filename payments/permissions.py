@@ -1,6 +1,9 @@
 from django.core.exceptions import ObjectDoesNotExist
 from rest_framework.permissions import BasePermission
 
+from .models import PlanTier
+from .usage import get_user_subscription
+
 
 class SubscriptionPermissionBase(BasePermission):
     """Shared helpers for subscription-aware permissions."""
@@ -12,10 +15,7 @@ class SubscriptionPermissionBase(BasePermission):
         if not user or not getattr(user, "is_authenticated", False):
             return None
 
-        try:
-            return user.subscription
-        except (AttributeError, ObjectDoesNotExist):
-            return None
+        return get_user_subscription(user)
 
 
 class IsProUser(SubscriptionPermissionBase):
@@ -66,18 +66,23 @@ class HasLiveCoachTime(SubscriptionPermissionBase):
 
 
 class CanUploadRetroactiveVideo(SubscriptionPermissionBase):
-    message = "You have reached your retroactive video upload limit for this billing period."
+    message = "You have reached your retroactive video upload limit."
 
     def has_permission(self, request, view):
-        sub = self._get_subscription(request)
-        if not sub:
-            self.message = "An active subscription is required to upload retroactive video."
+        user = getattr(request, "user", None)
+        if not user or not getattr(user, "is_authenticated", False):
             return False
 
+        sub = self._get_subscription(request)
+
+        # Free users are handled by the view-level quota check.
+        if not sub or sub.tier == PlanTier.FREE.value:
+            return True
+
+        # For paid subscribers, trigger usage resets & check their tier allowance.
         if sub.status != "active":
             self.message = "Your subscription is not active."
             return False
 
         sub.reset_usage_if_needed()
-
         return sub.can_upload_retroactive_video

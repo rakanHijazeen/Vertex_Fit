@@ -2,7 +2,8 @@ from background_task import background
 from .models import WorkoutSession
 from .vlm_service import GeminiVLMService
 from .utils import S3Service
-from payments.usage import consume_retroactive_upload_usage
+from payments.models import PlanTier
+from payments.usage import consume_retroactive_upload_usage, get_user_subscription
 
 @background
 def process_vlm_coaching_analysis(workout_session_id):
@@ -18,6 +19,12 @@ def process_vlm_coaching_analysis(workout_session_id):
         # 2. Update status to processing so the frontend template shows the loading state
         session.status = 'processing'
         session.save()
+
+        if not session.video_url:
+            session.vlm_feedback = "### 🚨 Analysis Failure\nWorkout session does not have a video attached."
+            session.status = 'failed'
+            session.save(update_fields=['vlm_feedback', 'status'])
+            return
         
         print(f"🔄 [VLM Worker]: Initiating coaching analysis for Session #{session.id} ({session.exercise.name})...")
 
@@ -30,7 +37,13 @@ def process_vlm_coaching_analysis(workout_session_id):
 
         # 2. Grab the user object tied to this session 💡
         user = session.user
-        
+        subscription = get_user_subscription(user)
+        is_paid_active_subscription = bool(
+            subscription
+            and subscription.status == "active"
+            and subscription.tier in {PlanTier.PRO.value, PlanTier.VIP.value}
+        )
+
         # 5. Hand over processing to Gemini with exact ground-truth values to block hallucinations
         ai_analysis_markdown = vlm_service.analyze_workout_video(
             user=user,
@@ -40,14 +53,17 @@ def process_vlm_coaching_analysis(workout_session_id):
             language=session.report_language
         )
 
-        # 6. Save the compiled markdown analysis data and mark the queue record complete
-        usage_recorded, usage_error = consume_retroactive_upload_usage(user)
-        if not usage_recorded:
-            session.vlm_feedback = usage_error or "### 🚨 Analysis Failure\nSubscription usage could not be recorded for this session."
-            session.status = 'failed'
-            session.save(update_fields=['vlm_feedback', 'status'])
-            print(f"⚠️ [VLM Worker]: Usage recording failed for Session #{session.id}: {usage_error}")
-            return
+        # 6. Save the compiled markdown analysis data and mark the queue record complete.
+        # Free-tier uploads are enforced at request time, so only paid active plans
+        # need the post-processing usage counter update.
+        if is_paid_active_subscription:
+            usage_recorded, usage_error = consume_retroactive_upload_usage(user)
+            if not usage_recorded:
+                session.vlm_feedback = usage_error or "### 🚨 Analysis Failure\nSubscription usage could not be recorded for this session."
+                session.status = 'failed'
+                session.save(update_fields=['vlm_feedback', 'status'])
+                print(f"⚠️ [VLM Worker]: Usage recording failed for Session #{session.id}: {usage_error}")
+                return
 
         session.vlm_feedback = ai_analysis_markdown
         session.status = 'completed'

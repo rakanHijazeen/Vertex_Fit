@@ -27,7 +27,7 @@ class WorkoutVideoUploadView(APIView):
     Handles automated multipart streams recorded directly from the device camera,
     uploads them to S3, and hands off processing to the background worker loop.
     """
-    authentication_classes = [JWTAuthentication] #
+    authentication_classes = [JWTAuthentication, SessionAuthentication] # Allow both JWT and session-based auth for local dev testing
     permission_classes = [IsAuthenticated, CanUploadRetroactiveVideo]
     parser_classes = [MultiPartParser, FormParser] # Needed to receive binary streams from the mobile client
 
@@ -104,7 +104,7 @@ class WorkoutSessionDetailView(APIView):
     Enforces absolute privacy protection. Fetches analytics metadata and generates
     a short-lived secure streaming link ONLY if the authenticated user owns the record.
     """
-    authentication_classes = [JWTAuthentication]
+    authentication_classes = [JWTAuthentication, SessionAuthentication] # Allow both JWT and session-based auth for local dev testing
     permission_classes = [IsAuthenticated]
 
     # Make session_id default to None to handle both lists and details

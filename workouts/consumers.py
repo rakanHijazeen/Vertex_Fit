@@ -8,7 +8,7 @@ from .models import ChatThread, ChatMessage
 from .chat_service import PersonalAIContextService
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.conf import settings
-from payments.usage import check_live_coach_quota, consume_live_coach_seconds
+from payments.usage import check_live_coach_quota, consume_live_coach_seconds, get_user_subscription
 
 
 class LiveCoachingConsumer(AsyncWebsocketConsumer):
@@ -36,6 +36,33 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
             ".GenerativeService.BidiGenerateContent?key="
             f"{self.api_key}"
         )
+
+    async def _enforce_live_coach_time_limit(self):
+        """Close the session once the user's allotted live-coach time is exhausted."""
+        if self.live_coach_started_at is None:
+            return True
+
+        subscription = await database_sync_to_async(get_user_subscription)(self.scope.get("user"))
+        if not subscription:
+            await self.send(json.dumps({
+                "type": "error",
+                "message": "An active subscription is required to use live coach time."
+            }))
+            await self.close()
+            return False
+
+        elapsed_seconds = max(1, int((timezone.now() - self.live_coach_started_at).total_seconds()))
+        max_seconds = subscription.live_coach_minute_limit * 60
+
+        if elapsed_seconds >= max_seconds:
+            await self.send(json.dumps({
+                "type": "error",
+                "message": "You have exhausted your live coach time for this billing period."
+            }))
+            await self.close()
+            return False
+
+        return True
 
     async def disconnect(self, code):
         if self.live_coach_started_at is not None and not self.live_coach_usage_recorded:
@@ -89,6 +116,9 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
             return
 
         if action_type == "user_ready":
+            if not await self._enforce_live_coach_time_limit():
+                return
+
             try:
                 await self.send(json.dumps({"type": "ready_ack", "msg": "starting_live"}))
             except Exception:
@@ -136,6 +166,9 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
             return
 
         if action_type == "realtime_frame":
+            if not await self._enforce_live_coach_time_limit():
+                return
+
             if self.google_ws is None:
                 await self.send(json.dumps({"type": "error", "message": "Gemini connection is not ready."}))
                 return
@@ -175,6 +208,9 @@ class LiveCoachingConsumer(AsyncWebsocketConsumer):
         try:
             await asyncio.sleep(3.0)
             while self.google_ws is not None:
+                if not await self._enforce_live_coach_time_limit():
+                    return
+
                 # Format the rep update text dynamically based on the session language
                 if self.language == "ar":
                     rep_text = f"العدّة الحالية المكتملة المسجلة من حساسات الحركة: {self.current_rep_count}."
