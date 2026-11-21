@@ -7,3 +7,5 @@ backup.sql
 media/
 gcp-vertex-sa.json
 staticfiles/
+raw_gold_videos/
+workouts/scripts/pose_landmarker_heavy.task
